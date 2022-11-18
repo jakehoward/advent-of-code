@@ -32,4 +32,40 @@
   (->> day-1-data
        (partition 3 1)
        (map (partial apply +))
-       count-increasing))
+       count-increasing)
+
+
+  ;; Day 2: https://adventofcode.com/2021/day/2
+  (def day-2-data
+    (->> (get-input 2)
+         lines
+         (map #(clojure.string/split % #" "))
+         (map (fn [[operation num]] [operation (Integer/parseInt num)]))))
+
+  (def operations {"forward" +
+                   "down" +
+                   "up" -})
+
+  ;; part 1 => 1,660,158
+  (*
+   (->> day-2-data
+        (filter (fn [[op]] (= "forward" op)))
+        (map second)
+        (reduce +))
+   (->> day-2-data
+        (filter (fn [[op]] (not= "forward" op)))
+        (reduce (fn [acc [op num]] (apply (operations op) [acc num])) 0)))
+
+  ;; part 2 => 1,604,592,846
+  (->> day-2-data
+   (reduce (fn [acc [op num]]
+             (condp = op
+               "forward" (-> acc
+                             (update :horizontal #(+ % num))
+                             (update :depth #(+ % (* (:aim acc) num))))
+               "up" (update acc :aim #(- % num))
+               "down" (update acc :aim #(+ % num))))
+           {:aim 0 :depth 0 :horizontal 0})
+   vector
+   (apply (fn [{:keys [depth horizontal]}] (* depth horizontal))))
+  )
