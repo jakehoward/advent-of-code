@@ -19,10 +19,10 @@
 
   (defn count-increasing [nums]
     (->> nums
-       (partition 2 1)
-       (map (fn [[a b]] (< a b)))
-       (filter identity)
-       count))
+         (partition 2 1)
+         (map (fn [[a b]] (< a b)))
+         (filter identity)
+         count))
 
   ;; part one => 1759
   (-> day-1-data
@@ -34,8 +34,7 @@
        (map (partial apply +))
        count-increasing)
 
-
-  ;; Day 2: https://adventofcode.com/2021/day/2
+;; Day 2: https://adventofcode.com/2021/day/2
   (def day-2-data
     (->> (get-input 2)
          lines
@@ -58,14 +57,44 @@
 
   ;; part 2 => 1,604,592,846
   (->> day-2-data
-   (reduce (fn [acc [op num]]
-             (condp = op
-               "forward" (-> acc
-                             (update :horizontal #(+ % num))
-                             (update :depth #(+ % (* (:aim acc) num))))
-               "up" (update acc :aim #(- % num))
-               "down" (update acc :aim #(+ % num))))
-           {:aim 0 :depth 0 :horizontal 0})
-   vector
-   (apply (fn [{:keys [depth horizontal]}] (* depth horizontal))))
+       (reduce (fn [acc [op num]]
+                 (condp = op
+                   "forward" (-> acc
+                                 (update :horizontal #(+ % num))
+                                 (update :depth #(+ % (* (:aim acc) num))))
+                   "up" (update acc :aim #(- % num))
+                   "down" (update acc :aim #(+ % num))))
+               {:aim 0 :depth 0 :horizontal 0})
+       vector
+       (apply (fn [{:keys [depth horizontal]}] (* depth horizontal))))
+
+  ;; Day 3: https://adventofcode.com/2021/day/3
+  (def day-3-data
+    (->> (get-input 3)
+         lines
+         (map #(clojure.string/split % #""))))
+
+  (def columns
+    (apply map vector day-3-data))
+
+  (defn most-common [xs]
+    (->> xs
+         (group-by identity)
+         (map (fn [[value items]] [value (count items)]))
+         (sort-by second)
+         reverse
+         ffirst))
+
+  (defn least-common [xs]
+    (->> xs
+         (group-by identity)
+         (map (fn [[value items]] [value (count items)]))
+         (sort-by second)
+         ffirst))
+
+  ;; part 1 => 4,006,064
+  (def gamma (clojure.string/join (map most-common columns)))
+  (def epsilon (clojure.string/join (map least-common columns)))
+  (* (Integer/parseInt gamma 2)
+     (Integer/parseInt epsilon 2))
   )
