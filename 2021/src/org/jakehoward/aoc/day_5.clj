@@ -33,7 +33,9 @@
                          (range-incl (.x start) (.x end)))
 
                    :else
-                   []
+                   (mapv (fn [x y] (->Point x y))
+                         (range-incl (.x start) (.x end))
+                         (range-incl (.y start) (.y end)))
                    )))
 
 (def lines (->> data
@@ -56,6 +58,7 @@
 
 (comment
   (soln) ;; => 6225
+  (soln) ;; => 22116
 
   (.asString (last lines))
 
