@@ -10,6 +10,8 @@
 (defn lines [txt]
   (clojure.string/split txt #"\n"))
 
+;; (take 3 day-3-data)
+
 (comment
   ;; Day 1: https://adventofcode.com/2021/day/1
   (def day-1-data
@@ -74,8 +76,10 @@
          lines
          (map #(clojure.string/split % #""))))
 
-  (def columns
-    (apply map vector day-3-data))
+  (defn colify [rows]
+    (apply map vector rows))
+
+  (def columns (colify day-3-data))
 
   (defn most-common [xs]
     (->> xs
@@ -97,4 +101,50 @@
   (def epsilon (clojure.string/join (map least-common columns)))
   (* (Integer/parseInt gamma 2)
      (Integer/parseInt epsilon 2))
-  )
+
+  ;; part 2 => 5941884
+  (defn get-row-idxs-least [column]
+    (let [num-1s (count (filter #(= "1" %) column))
+          num-0s (count (filter #(= "0" %) column))
+          its-a-tie (= num-1s num-0s)
+          get-idxs-for (if (or its-a-tie (= "0" (least-common column)))
+                         "0"
+                         "1")]
+      (keep-indexed (fn [idx v] (when (= v get-idxs-for) idx)) column)))
+
+  (defn get-row-idxs-most [column]
+    (let [num-1s (count (filter #(= "1" %) column))
+          num-0s (count (filter #(= "0" %) column))
+          its-a-tie (= num-1s num-0s)
+          get-idxs-for (if (or its-a-tie (= "1" (most-common column)))
+                         "1"
+                         "0")]
+      (keep-indexed (fn [idx v] (when (= v get-idxs-for) idx)) column)))
+
+  (defn get-remaining-rows [rows col-idx mode]
+    (let [columns (colify rows)
+          column (nth columns col-idx)
+          get-row-idxs-algo (condp = mode
+                              :least get-row-idxs-least
+                              :most get-row-idxs-most)]
+      (vals (select-keys (vec rows) (get-row-idxs-algo column)))))
+
+  (defn find-rating [mode]
+    (loop [rows day-3-data
+           col-idx 0]
+      (if (= 1 (count rows))
+        (clojure.string/join (first rows))
+        (let [remaining-rows (get-remaining-rows rows col-idx mode)]
+          (recur remaining-rows (inc col-idx))))))
+
+  (defn binary-string->int [s]
+    (Integer/parseInt s 2))
+
+  (get-remaining-rows [["0" "1"] ["0" "1"]] 1 :most)
+
+  (def day3-pt2-ans
+    (*
+     (binary-string->int (find-rating :least))
+     (binary-string->int (find-rating :most))))
+
+  (println day3-pt2-ans))
