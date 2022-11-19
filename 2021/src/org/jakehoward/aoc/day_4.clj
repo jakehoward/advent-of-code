@@ -76,15 +76,11 @@
            (.width board)))
 
 (defn score [board last-num-called]
-  (let [rows           (.rows board)
-        cols           (.columns board)
-        rows-and-cols  (concat rows cols)
-        winning-list   (->> rows-and-cols
-                            (drop-while #(not (every? :marked %)))
-                            first
-                            (map :value))]
+  (let [unmarked-cells (filter #(not (:marked %)) (.cells board))
+        values         (map :value unmarked-cells)
+        sum-total      (reduce + values)]
     (*
-     (reduce + winning-list)
+     sum-total
      last-num-called)))
 
 (defn play []
@@ -104,7 +100,31 @@
         (score winner n)
         (recur updated-bs (rest ns))))))
 
-;; (play) ;; => 31584
+;; (play) ;; => 87456
+
+(defn play-to-last-board []
+  (loop [bs boards
+         ns bingo-numbers]
+
+    (let [n           (first ns)
+          updated-bs  (map #(mark-board % n) bs)
+          remaining   (filter #(not (bingo? %)) updated-bs)]
+      (if (= 1 (count remaining))
+        {:board (first remaining) :numbers ns}
+        (recur remaining (rest ns))))))
+
+(defn play-pt2 []
+  (let [{:keys [board numbers]} (play-to-last-board)]
+    (loop [b   board
+           ns  numbers]
+      (let [updated-board (mark-board b (first ns))]
+        (if (bingo? updated-board)
+          (score updated-board (first ns))
+          (recur updated-board (rest ns)))))))
+
+;; (def last-board (play-to-last-board))
+;; (score (first (drop-while #(not (bingo? %)) (map #(mark-board (:board last-board) %) (:numbers last-board)))) 10)
+(play-pt2) ;; => 15561
 
 (comment
   (-> (first boards)
