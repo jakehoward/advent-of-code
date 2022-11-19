@@ -1,16 +1,5 @@
 (ns org.jakehoward.aoc.core
-  (:require [clojure.java.io :as io]))
-
-(defn get-input [day]
-  (-> (format "inputs/days/%s.txt" day)
-      io/resource
-      slurp
-      clojure.string/trim))
-
-(defn lines [txt]
-  (clojure.string/split txt #"\n"))
-
-;; (take 3 day-3-data)
+  (:require [org.jakehoward.aoc.utils :refer [get-input lines]]))
 
 (comment
   ;; Day 1: https://adventofcode.com/2021/day/1
