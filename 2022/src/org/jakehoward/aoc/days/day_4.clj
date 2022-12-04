@@ -22,12 +22,24 @@
     (> bs as) (<= be ae)
     :else      false))
 
+(defn overlap [[[as ae] [bs be]]]
+  ;; either totally before, or totally
+  ;; after don't overlap. We want the
+  ;; complement of that
+  (not (or (> bs ae) (< be as))))
+
 
 (defn play []
   (->> input
        (filter fully-contained)
        count))
 
+(defn play-pt2 []
+  (->> input
+       (filter overlap)
+       count))
+
 (comment
   (play) ;; => 528
+  (play-pt2) ;; => 881
   )
