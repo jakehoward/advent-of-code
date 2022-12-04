@@ -12,3 +12,9 @@
 
 (defn chars [lines]
   (map #(clojure.string/split % #"") lines))
+
+(defn range-incl [start end]
+  (cond
+    (= start end) (range start end)
+    (< start end) (range start (inc end))
+    (> start end) (reverse (range end (inc start)))))
