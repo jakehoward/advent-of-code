@@ -41,18 +41,18 @@
                 first
                 parse-crates))
 
-(defn process-instruction [crates {:keys [num-crates from to]}]
+(defn process-instruction [crates {:keys [num-crates from to]} grab-fn]
   (let [from-crate-stack  (crates from)
         crates-to-move    (take num-crates (reverse from-crate-stack)) ;; partition?
         remaining-crates  (reverse (drop num-crates (reverse from-crate-stack)))
         to-crate-stack    (crates to)
-        updated-to-stack  (concat to-crate-stack crates-to-move)]
+        updated-to-stack  (concat to-crate-stack (grab-fn crates-to-move))]
     (-> crates
         (assoc from remaining-crates)
         (assoc to   updated-to-stack))))
 
-(defn play []
-  (let [final-state     (reduce process-instruction crates instructions)
+(defn play [grab-fn]
+  (let [final-state     (reduce #(process-instruction %1 %2 grab-fn) crates instructions)
         top-boxes       (->> final-state
                              (map (fn [[idx crates]] [idx crates]))
                              (sort-by first)
@@ -63,10 +63,7 @@
 
 (comment
   crates
-  (play) ;; => "WHTLRMZRC"
-  (peek [1 2 3])
-  (reduce (fn [acc item] item) crates)
-  (last instructions)
-  (-> (parse-instruction (first instructions))
-      (get-in [0])))
+  (play identity) ;; => "WHTLRMZRC"
+  (play reverse) ;; =>  "GMPMLWNMG"
+  )
 
