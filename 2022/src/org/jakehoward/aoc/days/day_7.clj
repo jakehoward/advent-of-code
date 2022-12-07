@@ -15,7 +15,7 @@
 
 (defn- parse-file [line]
   (let [[size filename] (string/split line #"\s+")]
-    {:type :file :name filename :size size}))
+    {:type :file :name filename :size (Integer/parseInt size)}))
 
 (defn parse-input-line [line]
   (cond
@@ -31,18 +31,18 @@
   ;; lacks elegance
   (cond
     (and (is-cmd? input)
-         (= (:cmd input) "cd")) (if (= (:arg input) "..")
-                                  (pop path)
-                                  (conj path (:arg input)))
+         (= (:cmd input) "cd")) (cond
+                                  (= (:arg input) "..") (pop path)
+                                  ;; (= (:arg input) "/")  ["/"]     ;; this is probably buggy as hell...
+                                  :else                 (conj path (:arg input)))
     :else                       path))
-
 
 (defn update-path-to-files [path-to-files current-path input]
   (if (= :file (:type input))
     (assoc
      path-to-files
      current-path
-     (conj (or (path-to-files current-path) []) input))
+     (conj (or (path-to-files current-path) []) input)) ;; todo: make it a set?
     path-to-files))
 
 (defn build-path-to-files [inputs]
@@ -55,15 +55,62 @@
         (recur (rest remaining-inputs)
                updated-path
                updated-path-to-files))
-      path-to-files)
+      path-to-files)))
+
+(defn get-all-files-incl-subdir [path path-to-files]
+  (let [files        (path-to-files path)
+        subdirs      (->> path-to-files
+                          (filter (fn [[p files]]
+                                    (let [possible-overlap (take (count path) p)]
+                                      (and (= possible-overlap path)
+                                           (> (count p) (count path)))))))
+        subdir-files (->> subdirs
+                          (mapcat second))]
+    (concat files subdir-files)))
+
+(defn sum-file-sizes [files]
+  (->> files
+       (map :size)
+       ;; ((fn [sz] (println "size:" sz) sz))
+       (reduce +)))
+
+(defn sum-dir-sizes [path-to-files]
+  (->> path-to-files
+       (map (fn [[path files]] [path (get-all-files-incl-subdir path path-to-files)]))
+       (map (fn [[path files]] [path (sum-file-sizes files)]))
+       (into {})))
+
+(defn part-1 []
+  (let [inputs        (parse-input (utils/get-input 7))
+        path-to-files (build-path-to-files inputs)
+        dir-sizes     (sum-dir-sizes path-to-files)
+        under-100k    (->> dir-sizes
+                           (filter (fn [[path size]] (<= size 100000)))
+                           (into {}))
+        under-100k-sizes (map second under-100k)]
+    (reduce + under-100k-sizes)))
+
+(defn part-1-debug []
+  (let [inputs        (parse-input example-input)
+        path-to-files (build-path-to-files inputs)
+        dir-sizes     (sum-dir-sizes path-to-files)
+        under-100k    (->> dir-sizes
+                           (filter (fn [[path size]] (<= size 100000)))
+                           (into {}))]
+    ;; (reduce + (map second under-100k))
+    dir-sizes
     ))
 
-
 (comment
+  (part-1) ;; => 1375786
+  (part-1)
+  (part-1-debug) ;; {["/"] 48381165, ["/" "a"] 94853, ["/" "a" "e"] 584, ["/" "d"] 24933642}
+
   (let [inputs (parse-input example-input)
         ptf    (build-path-to-files inputs)]
-    (ptf ["/" "d"]))
-
+    (get-all-files-incl-subdir ["/" "a"] ptf)
+    ;; (sum-dir-sizes ptf)
+    )
   (def example-input "$ cd /
 $ ls
 dir a
@@ -142,5 +189,4 @@ $ ls
   ;; tree
   ;; {:name "/" :children [{:name "sth.txt" :type :file } {...}
   ;;                       {:name "d" :children []}]}
-
   )
