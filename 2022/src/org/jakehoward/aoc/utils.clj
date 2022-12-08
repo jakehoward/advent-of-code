@@ -13,6 +13,9 @@
 (defn chars [lines]
   (map #(clojure.string/split % #"") lines))
 
+(defn cols [rows]
+  (apply map vector rows))
+
 (defn range-incl [start end]
   (cond
     (= start end) (range start end)
