@@ -53,36 +53,78 @@
   co-ordinates that head and tail have visited.
   Uses the kind of cartesian co-ord system you may
   be familiar with from school (up, right are +ve)"
-  [initial-instructions]
+  ([initial-instructions] (process-instructions initial-instructions [0 0] [0 0]))
+  ([initial-instructions initial-head initial-tail]
 
-  (loop [head-coords  [[0 0]]
-         tail-coords  [[0 0]]
-         instructions initial-instructions]
-    (if-let [instruction (first instructions)]
-      (let [head      (last head-coords)
-            tail      (last tail-coords)
-            new-head  (move-head head instruction)
-            new-tail  (move-tail tail new-head)
-            _         (comment (println "Head:" head
-                                        "Tail:" tail
-                                        "New head:" new-head
-                                        "New tail:" new-tail))]
-        (recur (conj head-coords new-head)
-               (conj tail-coords new-tail)
-               (rest instructions)))
-      {:head-coords head-coords :tail-coords tail-coords})))
+   (loop [head-coords  [initial-head]
+          tail-coords  [initial-tail]
+          instructions initial-instructions]
+     (if-let [instruction (first instructions)]
+       (let [head      (last head-coords)
+             tail      (last tail-coords)
+             new-head  (move-head head instruction)
+             new-tail  (move-tail tail new-head)
+             _         (comment (println "Head:" head
+                                         "Tail:" tail
+                                         "New head:" new-head
+                                         "New tail:" new-tail))]
+         (recur (conj head-coords new-head)
+                (conj tail-coords new-tail)
+                (rest instructions)))
+       {:head-coords head-coords :tail-coords tail-coords}))))
+
+(defn follow-head
+  "Given a list of head-coords, use them to calc tail position"
+  ([initial-head-coords]
+
+   (loop [head-coords  initial-head-coords
+          tail-coords  [[0 0]]]
+     (if-let [head (first head-coords)]
+       (let [tail      (last tail-coords)
+             new-tail  (move-tail tail head)
+             _         (comment (println "Head:" next-head
+                                         "Tail:" tail
+                                         "New tail:" new-tail))]
+         (recur (rest head-coords)
+                (conj tail-coords new-tail)))
+       tail-coords))))
 
 (defn part-1 [input]
   (let [instructions                      (input->instructions input)
         {:keys [head-coords tail-coords]} (process-instructions instructions)
         ans tail-coords]
-    (count (set tail-coords))
-    ;; tail-coords
-    ))
+    (count (set tail-coords))))
+
+(defn follow-the-leader [leader-coords num-followers]
+  (println "\n\n")
+  (loop [all-tail-coords      [leader-coords]
+         remaining-followers  num-followers
+         last-tail            leader-coords]
+
+    (println "Remaining followers:" remaining-followers)
+
+    (if (> remaining-followers 0)
+      (let [next-tail (follow-head last-tail)]
+        (recur (conj all-tail-coords next-tail)
+               (dec remaining-followers)
+               next-tail))
+      all-tail-coords)))
+
+(defn part-2
+  "Need to recur num-knots times where the previous tail
+  becomes the new head"
+  [input]
+  (let [instructions                      (input->instructions input)
+        {:keys [head-coords tail-coords]} (process-instructions instructions)
+        all-tail-coords                   (follow-the-leader tail-coords 8)]
+    (count (set (last all-tail-coords)))))
 
 (comment
   (part-1 example-data)
-  (part-1 (utils/get-input 9)) ;; => 6391
+  (part-1 (utils/get-input 9));; => 6391
+  (part-2 example-data-2)
+  ;; => 2252 => your answer is too low.
+  (part-2 (utils/get-input 9))
 
   (input->instructions example-data)
   (count (input->instructions (utils/get-input 9)))
@@ -93,4 +135,13 @@ D 1
 R 4
 D 1
 L 5
-R 2"))
+R 2")
+(def example-data-2 "R 5
+U 8
+L 8
+D 3
+R 17
+D 10
+L 25
+U 20")
+  )
