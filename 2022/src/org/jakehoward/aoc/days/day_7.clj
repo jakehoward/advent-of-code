@@ -80,6 +80,47 @@
          [path (calculate-dir-size path path-to-files)])
        (into {})))
 
+(defrecord Node [name children])
+
+(defn child-exists? [node name]
+  (some #{name} (map :name (:children node))))
+
+(defn get-child [node name]
+  (first (filter #(= (:name %) name) (:children node))))
+
+(defn- update-tree [root-node path files]
+  (loop [path-segments path
+         root-node     (transient root-node)
+         current-node  (transient root-node)]
+    (if-let [path-segment (first path-segments)]
+      ;; create/find missing children and recur
+      (if (child-exists? current-node path-segment)
+        (let [child (get-child current-node path-segment)]
+          (recur (rest path-segments)
+                 root-node
+                 child))
+        (recur (rest path-segments)
+               root-node
+               (assoc! current-node
+                       :children
+                       (conj (get current-node :children) (->Node path-segment #{})))))
+
+      ;; put files against node + return root
+      (do
+        (assoc! current-node :children files)
+        (persistent! root-node)))
+    )
+  )
+
+(defn build-tree [all-path-to-files]
+  (loop [path-to-files (vec all-path-to-files)
+         root-node     (->Node "/" #{})]
+    (if-let [p->fs (first path-to-files)]
+      (let [[path files] p->fs]
+        (update-tree root-node path files))
+      root-node)))
+
+
 (defn part-1 [raw-input]
   (let [inputs          (map parse-input (utils/lines raw-input))
         path-to-files   (build-path-to-files inputs)
