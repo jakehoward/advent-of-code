@@ -77,6 +77,17 @@
          [path (calculate-dir-size path path-to-files)])
        (into {})))
 
+(defn part-1 [raw-input]
+  (let [inputs          (map parse-input (utils/lines raw-input))
+        path-to-files   (build-path-to-files inputs)
+        path-to-size    (build-path-to-size path-to-files)
+        all-sizes       (vals path-to-size)
+        sizes-upto-100k (filter #(<= % (* 100 1000)) all-sizes)
+        sum-upto-100k   (reduce + sizes-upto-100k)
+        ;; ans             sizes-upto-100k
+        ans             sum-upto-100k]
+    ans))
+
 (defprotocol FileTreeNode
   (is-dir? [node])
   (get-children [node])
@@ -166,38 +177,14 @@
        (map zip/node)
        clojure.pprint/pprint))
 
-(defn pp-tree []
-  (->> (iterate zip/next (fs-zip example-file-tree))
-       (take-while #(not (zip/end? %)))
-       (map zip/node)
-       clojure.pprint/pprint))
-
-(defn try-build []
-  (let [initial (->Dir "/" [(->File "rooty.txt" 123)])]
-    (-> (fs-zip initial)
-        (zip/insert-child (->File "foo.bar" 123))
-        (zip/insert-child (->Dir "a" []))
-        (zip/insert-child (->Dir "b" []))
-        (zip/down)
-        (zip/insert-child (->File "blah.bar" 456))
-        (zip/down)
-        (zip/edit (fn [n] (assoc n :size 9999)))
-        (zip/root))))
-
-(defn part-1 [raw-input]
+(defn part-1-tree [raw-input]
   (let [inputs          (map parse-input (utils/lines raw-input))
-        path-to-files   (build-path-to-files inputs)
-        path-to-size    (build-path-to-size path-to-files)
-        all-sizes       (vals path-to-size)
-        sizes-upto-100k (filter #(<= % (* 100 1000)) all-sizes)
-        sum-upto-100k   (reduce + sizes-upto-100k)
-        ;; ans             sizes-upto-100k
-        ans             sum-upto-100k]
-    ans))
+        file-tree       (build-file-tree inputs)]
+    file-tree))
 
 (comment
   (part-1 example-input) ;; => 95437
-  (part-1 (utils/get-input 7));; => 1375786
+  (part-1 (utils/get-input 7)) ;; => 1375786
 
   (def example-input "$ cd /
 $ ls
