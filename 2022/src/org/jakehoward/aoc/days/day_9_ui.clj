@@ -1,6 +1,6 @@
 (ns org.jakehoward.aoc.days.day-9-ui
   (:require
-   [org.jakehoward.aoc.days.day-9 :refer [get-all-positions example-data]]
+   [org.jakehoward.aoc.days.day-9 :refer [get-all-positions example-data example-data-2]]
    [io.github.humbleui.canvas :as canvas]
    [io.github.humbleui.core :as core]
    [io.github.humbleui.paint :as paint]
@@ -13,6 +13,8 @@
 (defonce *window
   (atom nil))
 
+(defonce *step (atom 0))
+
 (defn fill-cell [canvas x y paint opacity]
   (.setAlpha paint opacity)
   (canvas/draw-rect canvas (core/rect-xywh x y 1 1) paint))
@@ -23,10 +25,14 @@
 (defn render-knot [canvas x y]
   (fill-cell canvas x y (paint/fill 0) 255))
 
+(def positions (get-all-positions example-data-2))
+
 (defn paint [ctx canvas size]
-  (let [size  {:width 1000 :height 1000}
-        field (min (:width size) (:height size))
-        dim   25
+  (let [size        {:width 1000 :height 1000}
+        field       (min (:width size) (:height size))
+        dim         50
+        translate-x 25
+        translate-y -25
         scale (/ field dim)]
 
     ;; center canvas
@@ -44,9 +50,10 @@
     ;; (doseq [x (range dim)
             ;; y (range dim)]
     ;; (render-knot canvas x y))
-    (let [x 1
-          y 1]
-      (render-knot canvas x (- (dec dim) y)))
+    (let [knots (map #(nth % (inc @*step) [0 0]) positions)]
+      (doseq [[x y] knots]
+        ;; translate y from bottom left 0 0 to top left 0 0
+        (render-knot canvas (+ translate-x x) (+ translate-y (- (dec dim) y)))))
 
     ;; schedule redraw on next vsync
     (window/request-frame (:window ctx))))
@@ -58,9 +65,19 @@
      {:on-paint paint}))))
 
 (defn -main [& args]
+  (reset! *step 0)
   (ui/start-app!
    (reset! *window
            (ui/window
             {:title "Ropey dynamcics"}
             #'app)))
+  (.start
+   (Thread.
+    (fn []
+      (doall
+       (repeatedly
+        (dec (count (last positions)))
+        (fn []
+          (Thread/sleep 1000)
+          (swap! *step inc)))))))
   (apply nrepl/-main args))
