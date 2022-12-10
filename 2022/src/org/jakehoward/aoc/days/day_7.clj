@@ -21,17 +21,6 @@
     :else
     (throw (Exception. (str "Failed to parse input: " input)))))
 
-(defn build-path-to-files [inputs]
-  (loop [remaining-inputs inputs
-         current-path     []
-         path-to-file     {}]
-    (if-let [input (first remaining-inputs)]
-      (let [updated-path         (update-path current-path input)
-            updated-path-to-file (update-path-to-file path-to-file current-path input)]
-        (recur (rest remaining-inputs)
-               updated-path
-               updated-path-to-file))
-      path-to-file)))
 
 (defprotocol FileTreeNode
   (is-dir? [node])
@@ -112,9 +101,6 @@
                                                    (:size input)))
                      (rest inputs)))
         (zip/root loc)))))
-
-(defn build-example-file-tree []
-  (build-file-tree (map parse-input (utils/lines example-input))))
 
 (defn pp-file-tree [tree]
   (->> (iterate zip/next (fs-zip tree))
@@ -210,4 +196,9 @@ $ ls
 4060174 j
 8033020 d.log
 5626152 d.ext
-7214296 k"))
+7214296 k")
+
+  (defn build-example-file-tree []
+    (build-file-tree (map parse-input (utils/lines example-input))))
+  ;;
+  )

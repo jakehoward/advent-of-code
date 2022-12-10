@@ -127,6 +127,26 @@
         last-tail                         (follow-the-leader tail-coords 8)]
     (count (set last-tail))))
 
+(defn get-all-positions
+  "Get all the positions of all knots as a vector of vectors of coords
+  e.g. [[[x y] [x y] ...] [...] ...]"
+  [input]
+  (let [instructions                      (input->instructions input)
+        {:keys [head-coords tail-coords]} (process-instructions instructions)
+        all-tail-coords                   (iterate #(follow-the-leader % 1) tail-coords)]
+    (concat [head-coords] (take 9 all-tail-coords))))
+
+(def example-data "R 4
+U 4
+L 3
+D 1
+R 4
+D 1
+L 5
+R 2")
+
+(def full-data (utils/get-input 9))
+
 (comment
   (part-1 example-data)
   (part-1 (utils/get-input 9)) ;; => 6391
@@ -138,14 +158,9 @@
 
   (input->instructions example-data)
   (count (input->instructions (utils/get-input 9)))
-  (def example-data "R 4
-U 4
-L 3
-D 1
-R 4
-D 1
-L 5
-R 2")
+
+  (second (get-all-positions example-data))
+  
 (def example-data-2 "R 5
 U 8
 L 8
