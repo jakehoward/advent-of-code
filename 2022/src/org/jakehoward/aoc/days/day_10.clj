@@ -35,11 +35,26 @@
      (signal-strength 180)
      (signal-strength 220))))
 
+(defn draw [cycle X]
+  (if (#{(dec X) X (inc X)} (mod cycle 40))
+    "#"
+    "."))
+
+(defn part-2 [input]
+  (let [all-instructions (parse-input input)
+        cycle->X         (process-instructions all-instructions)
+        crt-output       (->> cycle->X
+                              (map-indexed draw)
+                              (partition 40)
+                              (map #(str/join "" %)))]
+    (println (str/join "\n" crt-output))))
+
 (comment
   (part-1 (utils/get-input "10-ex"))
   ;; => 15660 your answer is too high
   ;; => 14540 ("during" the nth cycle is important..!)
   (part-1 (utils/get-input "10"))
+  (part-2 (utils/get-input "10"))
   (process-instructions (parse-input (utils/get-input "10-ex")))
   (process-instructions (parse-input example-input))
   (def example-input

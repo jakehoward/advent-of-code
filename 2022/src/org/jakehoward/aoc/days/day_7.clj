@@ -1,7 +1,8 @@
 (ns org.jakehoward.aoc.days.day-7
   (:require [org.jakehoward.aoc.utils :as utils]
             [clojure.string :as string]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [clojure.zip :as zip]))
 
 (defn parse-input [input]
   (cond
@@ -20,7 +21,6 @@
     :else
     (throw (Exception. (str "Failed to parse input: " input)))))
 
-
 (defn update-path [raw-current-path input]
   (let [current-path (vec raw-current-path)]
     (cond
@@ -32,12 +32,10 @@
 
       :else                   current-path)))
 
-
 (defn update-path-to-file [path-to-file path input]
   (if (= :file (:type input))
     (assoc path-to-file path (conj (or (get path-to-file path) #{}) input))
     path-to-file))
-
 
 (defn build-path-to-files [inputs]
   (loop [remaining-inputs inputs
@@ -54,7 +52,7 @@
 (defn get-subdirs [path paths]
   (->> paths
        (filter (fn [other] (and (> (count other) (count path))
-                                   (= (take (count path) other) path))))))
+                                (= (take (count path) other) path))))))
 
 (defn sum-file-sizes [files]
   (reduce + (map :size files)))
@@ -70,8 +68,7 @@
         ;; _              (println "subdir files:" subdir-files)
         subdir-sizes   (sum-file-sizes subdir-files)
         ;; _              (println "subdir sizes:" subdir-sizes)
-        total-size     (+ this-size subdir-sizes)
-        ]
+        total-size     (+ this-size subdir-sizes)]
     total-size))
 
 ;; u
@@ -80,46 +77,112 @@
          [path (calculate-dir-size path path-to-files)])
        (into {})))
 
-(defrecord Node [name children])
+(defprotocol FileTreeNode
+  (is-dir? [node])
+  (get-children [node])
+  (make-node [node children]))
 
-(defn child-exists? [node name]
-  (some #{name} (map :name (:children node))))
+(defrecord File [name size]
+  FileTreeNode
+  (is-dir? [this] false)
+  (get-children [this] nil)
+  (make-node [node children]
+    (->File (:name node) (:size node))))
 
-(defn get-child [node name]
-  (first (filter #(= (:name %) name) (:children node))))
+(defrecord Dir [name children]
+  FileTreeNode
+  (is-dir? [this] true)
+  (get-children [this] children)
+  (make-node [node children] (->Dir (:name node) children)))
 
-(defn- update-tree [root-node path files]
-  (loop [path-segments path
-         root-node     (transient root-node)
-         current-node  (transient root-node)]
-    (if-let [path-segment (first path-segments)]
-      ;; create/find missing children and recur
-      (if (child-exists? current-node path-segment)
-        (let [child (get-child current-node path-segment)]
-          (recur (rest path-segments)
-                 root-node
-                 child))
-        (recur (rest path-segments)
-               root-node
-               (assoc! current-node
-                       :children
-                       (conj (get current-node :children) (->Node path-segment #{})))))
+(defn fs-zip [root-dir]
+  (zip/zipper
+   is-dir?
+   get-children
+   make-node
+   root-dir))
 
-      ;; put files against node + return root
-      (do
-        (assoc! current-node :children files)
-        (persistent! root-node)))
-    )
-  )
+(defn find-dir [loc name]
+  (if-let [first-child (zip/down loc)]
+    (let [dir-contents (iterate zip/right first-child)
+          node (->> dir-contents
+                    (drop-while #(and
+                                  (not (nil? %))
+                                  (or
+                                   (not= (:name (zip/node %)) name)
+                                   (not= Dir (type (zip/node %))))))
+                    first)]
+      (when (nil? node)
+        (throw (Exception. (str "Could not find dir " name " at loc"))))
+      node)
+    (throw (Exception. (str "Could not find dir " name " at loc: no children")))))
 
-(defn build-tree [all-path-to-files]
-  (loop [path-to-files (vec all-path-to-files)
-         root-node     (->Node "/" #{})]
-    (if-let [p->fs (first path-to-files)]
-      (let [[path files] p->fs]
-        (update-tree root-node path files))
-      root-node)))
+(def example-file-tree
+  (->Dir "/" [(->Dir "d" [(->File "f.txt" 23)])
+              (->Dir "a" [(->File "foo.blah" 4556)])
+              (->File "b.bat" 1234)]))
 
+(comment (println "\n\n")
+    (-> (fs-zip example-file-tree)
+       ;; (zip/append-child (->Dir "foodir" []))
+       ;; (zip/node)
+        ((fn [loc] (find-dir loc "b.bat")))
+        clojure.pprint/pprint))
+
+(defn build-file-tree [all-inputs]
+  (let [z (fs-zip (->Dir "/" []))]
+    (loop [loc    z
+           inputs all-inputs]
+      (if-let [input (first inputs)]
+        (cond (= "cd" (:cmd input))
+              (cond (= "/" (:arg input))
+                    (recur loc (rest inputs))
+
+                    (= ".." (:arg input))
+                    (recur (zip/up loc) (rest inputs))
+
+                    :else (recur (find-dir loc (:arg input))
+                                 (rest inputs)))
+
+              (= "ls" (:cmd input))
+              (recur loc (rest inputs))
+
+              (= :dir (:type input))
+              (recur (zip/append-child loc (->Dir (:name input) []))
+                     (rest inputs))
+
+              (= :file (:type input))
+              (recur (zip/append-child loc (->File (:name input)
+                                                   (:size input)))
+                     (rest inputs)))
+        (zip/root loc)))))
+
+(defn build-example-file-tree []
+  (build-file-tree (map parse-input (utils/lines example-input))))
+
+(defn pp-file-tree [tree]
+  (->> (iterate zip/next (fs-zip tree))
+       (take-while #(not (zip/end? %)))
+       (map zip/node)
+       clojure.pprint/pprint))
+
+(defn pp-tree []
+  (->> (iterate zip/next (fs-zip example-file-tree))
+       (take-while #(not (zip/end? %)))
+       (map zip/node)
+       clojure.pprint/pprint))
+
+(defn try-build []
+  (let [initial (->Dir "/" [(->File "rooty.txt" 123)])]
+    (-> (fs-zip initial)
+        (zip/insert-child (->File "foo.bar" 123))
+        (zip/insert-child (->Dir "a" []))
+        (zip/insert-child (->Dir "b" []))
+        (zip/down)
+        (zip/insert-child (->File "blah.bar" 456))
+        (zip/down)
+        (zip/edit (fn [n] (assoc n :size 9999)))
+        (zip/root))))
 
 (defn part-1 [raw-input]
   (let [inputs          (map parse-input (utils/lines raw-input))
@@ -129,19 +192,12 @@
         sizes-upto-100k (filter #(<= % (* 100 1000)) all-sizes)
         sum-upto-100k   (reduce + sizes-upto-100k)
         ;; ans             sizes-upto-100k
-        ans             sum-upto-100k
-        ]
+        ans             sum-upto-100k]
     ans))
 
-(defn part-1-ex []
-  (part-1 example-input))
-
-(defn part-1-prod []
-  (part-1 (utils/get-input 7)))
-
 (comment
-  (part-1-ex);; => 95437
-  (part-1-prod);; => 1375786
+  (part-1 example-input) ;; => 95437
+  (part-1 (utils/get-input 7));; => 1375786
 
   (def example-input "$ cd /
 $ ls
@@ -165,5 +221,4 @@ $ ls
 4060174 j
 8033020 d.log
 5626152 d.ext
-7214296 k")
-  )
+7214296 k"))
