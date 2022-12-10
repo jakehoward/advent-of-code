@@ -21,22 +21,6 @@
     :else
     (throw (Exception. (str "Failed to parse input: " input)))))
 
-(defn update-path [raw-current-path input]
-  (let [current-path (vec raw-current-path)]
-    (cond
-      (and
-       (= (:cmd input) "cd")
-       (= (:arg input) "..")) (pop current-path)
-
-      (= (:cmd input) "cd")   (conj current-path (:arg input))
-
-      :else                   current-path)))
-
-(defn update-path-to-file [path-to-file path input]
-  (if (= :file (:type input))
-    (assoc path-to-file path (conj (or (get path-to-file path) #{}) input))
-    path-to-file))
-
 (defn build-path-to-files [inputs]
   (loop [remaining-inputs inputs
          current-path     []
@@ -48,45 +32,6 @@
                updated-path
                updated-path-to-file))
       path-to-file)))
-
-(defn get-subdirs [path paths]
-  (->> paths
-       (filter (fn [other] (and (> (count other) (count path))
-                                (= (take (count path) other) path))))))
-
-(defn sum-file-sizes [files]
-  (reduce + (map :size files)))
-
-;; u
-(defn- calculate-dir-size [path path-to-files]
-  (let [this-files     (path-to-files path)
-        this-size      (sum-file-sizes this-files)
-
-        subdirs        (get-subdirs path (keys path-to-files))
-        ;; _              (println "subdirs:" subdirs)
-        subdir-files   (apply concat (vals (select-keys path-to-files subdirs)))
-        ;; _              (println "subdir files:" subdir-files)
-        subdir-sizes   (sum-file-sizes subdir-files)
-        ;; _              (println "subdir sizes:" subdir-sizes)
-        total-size     (+ this-size subdir-sizes)]
-    total-size))
-
-;; u
-(defn build-path-to-size [path-to-files]
-  (->> (for [path (keys path-to-files)]
-         [path (calculate-dir-size path path-to-files)])
-       (into {})))
-
-(defn part-1 [raw-input]
-  (let [inputs          (map parse-input (utils/lines raw-input))
-        path-to-files   (build-path-to-files inputs)
-        path-to-size    (build-path-to-size path-to-files)
-        all-sizes       (vals path-to-size)
-        sizes-upto-100k (filter #(<= % (* 100 1000)) all-sizes)
-        sum-upto-100k   (reduce + sizes-upto-100k)
-        ;; ans             sizes-upto-100k
-        ans             sum-upto-100k]
-    ans))
 
 (defprotocol FileTreeNode
   (is-dir? [node])
@@ -210,12 +155,10 @@
         path->size      (calc-dir-sizes file-tree)
         total-sizes     (calc-total-dir-sizes path->size)
         sizes-up-to100k (filter (fn [[path size]] (<= size (* 100 1000))) total-sizes)
-        ans             (reduce + (map second sizes-up-to100k))
-        ]
+        ans             (reduce + (map second sizes-up-to100k))]
     sizes-up-to100k
     total-sizes
-    ans
-    ))
+    ans))
 
 (defn part-2-tree [raw-input]
   (let [inputs          (map parse-input (utils/lines raw-input))
@@ -229,13 +172,8 @@
         min-size-to-del (- req-space free-space)
         del-candidates  (->> total-sizes
                              (filter (fn [[path size]] (>= size min-size-to-del)))
-                             (sort-by second))
-        ans             total-sizes
-        ans             min-size-to-del
-        ans             del-candidates
-        ]
-    (second (first del-candidates))
-    ))
+                             (sort-by second))]
+    (second (first del-candidates))))
 
 (comment
   (part-1 example-input) ;; => 95437
@@ -249,7 +187,7 @@
   ;; => 34257857 your answer is too high
   ;; => 6400111
   (part-2-tree (utils/get-input 7))
-  
+
   (def example-input "$ cd /
 $ ls
 dir a
