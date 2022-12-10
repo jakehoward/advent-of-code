@@ -8,7 +8,7 @@
 
 (defn input->instructions
   "Turn the raw input string into a list of single
-  instructions. E.g. U 4 => U U U U, etc"
+  instructions. E.g. U 4 => :U :U :U :U, etc"
   [input]
   (->> (utils/lines input)
        (mapcat parse-input-line)))
@@ -154,4 +154,52 @@ R 17
 D 10
 L 25
 U 20")
+
+(def what-i-expect "
+......
+......
+....H.
+.4321.
+5..... ")
+
+(def what-i-expect-next "
+......
+....H.
+....1.
+.432..
+5..... ")
+(def what-i-expect-next-ii "
+....H.
+....1.
+....2.
+.43...
+6..... ")
+
+(def ex-2 "
+......
+......
+......
+....H.
+4321..")
+
+(def ex-2-2 "
+......
+......
+....H.
+....1.
+5432..")
+
+(def ex-2-3 "
+......
+....H.
+....1.
+...42.
+65....")
+
+(def ex-2-3 "
+......
+....H.
+....1.
+....2.
+6543..")
   )
