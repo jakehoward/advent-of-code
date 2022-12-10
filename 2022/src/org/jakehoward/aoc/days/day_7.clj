@@ -134,11 +134,11 @@
               (->File "b.bat" 1234)]))
 
 (comment (println "\n\n")
-    (-> (fs-zip example-file-tree)
+         (-> (fs-zip example-file-tree)
        ;; (zip/append-child (->Dir "foodir" []))
        ;; (zip/node)
-        ((fn [loc] (find-dir loc "b.bat")))
-        clojure.pprint/pprint))
+             ((fn [loc] (find-dir loc "b.bat")))
+             clojure.pprint/pprint))
 
 (defn build-file-tree [all-inputs]
   (let [z (fs-zip (->Dir "/" []))]
@@ -177,15 +177,79 @@
        (map zip/node)
        clojure.pprint/pprint))
 
+(defn calc-dir-sizes [file-tree]
+  (loop [dirs-to-search [{:path ["/"] :dirs (.get-children file-tree)}]
+         sizes          {}]
+    (if-let [dir-to-search (first dirs-to-search)]
+      (let [{:keys [path dirs]} dir-to-search
+            dir-children        (filter #(= Dir (type %)) dirs)
+            file-children       (filter #(= File (type %)) dirs)
+            child-dirs (->> dir-children
+                            (map (fn [dir] {:path (conj path (:name dir))
+                                            :dirs (.get-children dir)})))]
+        (recur (concat (rest dirs-to-search) child-dirs)
+               (assoc sizes (:path dir-to-search) (->> file-children
+                                                       (map :size)
+                                                       (reduce +)))))
+      sizes)))
+
+(defn- is-subdir? [base dir]
+  (and (< (count base) (count dir))
+       (= (take (count base) dir) base)))
+
+(defn- calc-total-dir-sizes [path->size]
+  (for [[path size]  path->size]
+    (let [other-sizes (for [[other-path other-size] path->size
+                            :when (is-subdir? path other-path)]
+                        other-size)]
+      [path (+ size (reduce + other-sizes))])))
+
 (defn part-1-tree [raw-input]
   (let [inputs          (map parse-input (utils/lines raw-input))
-        file-tree       (build-file-tree inputs)]
-    file-tree))
+        file-tree       (build-file-tree inputs)
+        path->size      (calc-dir-sizes file-tree)
+        total-sizes     (calc-total-dir-sizes path->size)
+        sizes-up-to100k (filter (fn [[path size]] (<= size (* 100 1000))) total-sizes)
+        ans             (reduce + (map second sizes-up-to100k))
+        ]
+    sizes-up-to100k
+    total-sizes
+    ans
+    ))
+
+(defn part-2-tree [raw-input]
+  (let [inputs          (map parse-input (utils/lines raw-input))
+        file-tree       (build-file-tree inputs)
+        path->size      (calc-dir-sizes file-tree)
+        total-sizes     (into {} (calc-total-dir-sizes path->size))
+        total-space     (* 70 1000 1000)
+        req-space       (* 30 1000 1000)
+        used-space      (get total-sizes ["/"])
+        free-space      (- total-space used-space)
+        min-size-to-del (- req-space free-space)
+        del-candidates  (->> total-sizes
+                             (filter (fn [[path size]] (>= size min-size-to-del)))
+                             (sort-by second))
+        ans             total-sizes
+        ans             min-size-to-del
+        ans             del-candidates
+        ]
+    (second (first del-candidates))
+    ))
 
 (comment
   (part-1 example-input) ;; => 95437
   (part-1 (utils/get-input 7)) ;; => 1375786
 
+  (part-1-tree example-input)
+  (part-1-tree (utils/get-input 7)) ;; => 1491614
+
+  (part-2-tree example-input)
+
+  ;; => 34257857 your answer is too high
+  ;; => 6400111
+  (part-2-tree (utils/get-input 7))
+  
   (def example-input "$ cd /
 $ ls
 dir a
