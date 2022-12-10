@@ -97,18 +97,26 @@
 
 (defn follow-the-leader [leader-coords num-followers]
   (println "\n\n")
-  (loop [all-tail-coords      [leader-coords]
-         remaining-followers  num-followers
+  (loop [remaining-followers  num-followers
          last-tail            leader-coords]
 
     (println "Remaining followers:" remaining-followers)
 
     (if (> remaining-followers 0)
       (let [next-tail (follow-head last-tail)]
-        (recur (conj all-tail-coords next-tail)
-               (dec remaining-followers)
+        (recur (dec remaining-followers)
                next-tail))
-      all-tail-coords)))
+      last-tail)))
+
+(defn part-1-ftl
+  "Solve part 1 using the solution to part two so I
+  can check it works against a known problem/solution
+  pair"
+  [input]
+  (let [instructions                      (input->instructions input)
+        {:keys [head-coords tail-coords]} (process-instructions instructions)
+        ftl-tail-coords                   (follow-the-leader head-coords 1)]
+    (count (set ftl-tail-coords))))
 
 (defn part-2
   "Need to recur num-knots times where the previous tail
@@ -116,14 +124,16 @@
   [input]
   (let [instructions                      (input->instructions input)
         {:keys [head-coords tail-coords]} (process-instructions instructions)
-        all-tail-coords                   (follow-the-leader tail-coords 8)]
-    (count (set (last all-tail-coords)))))
+        last-tail                         (follow-the-leader tail-coords 8)]
+    (count (set last-tail))))
 
 (comment
   (part-1 example-data)
-  (part-1 (utils/get-input 9));; => 6391
+  (part-1 (utils/get-input 9)) ;; => 6391
+  (part-1-ftl (utils/get-input 9)) ;; => 6391
   (part-2 example-data-2)
   ;; => 2252 => your answer is too low.
+  ;; => ;; => 2541 too low???
   (part-2 (utils/get-input 9))
 
   (input->instructions example-data)
