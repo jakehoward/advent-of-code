@@ -21,3 +21,5 @@
     (= start end) (range start end)
     (< start end) (range start (inc end))
     (> start end) (reverse (range end (inc start)))))
+
+(defn parse-int [s] (Integer/parseInt s))
