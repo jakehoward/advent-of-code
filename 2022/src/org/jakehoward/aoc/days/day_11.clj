@@ -103,7 +103,7 @@
 (defn part-1 [input]
   (let [monkeys        (parse-input input)
         monkey-lookup  (build-monkey-lookup monkeys)
-        monkeys-after  (play-game monkey-lookup 20)
+        monkeys-after  (play-game monkey-lookup 2000)
         num-insp       (map :num-inspections (vals monkeys-after))]
     monkeys-after
     (reduce * (take 2 (reverse (sort num-insp))))))
@@ -111,11 +111,10 @@
 (defn part-2 [input]
   (let [monkeys        (parse-input input 1)
         monkey-lookup  (build-monkey-lookup monkeys)
-        monkeys-after  (play-game monkey-lookup 10)
+        monkeys-after  (play-game monkey-lookup 650)
         num-insp       (map :num-inspections (vals monkeys-after))
         ]
-    (reduce * (take 2 (reverse (sort num-insp))))
-    ))
+    (reduce * (take 2 (reverse (sort num-insp))))))
 
 (defn print-items-report [monkeys]
   (do (println "\n\n")
@@ -123,11 +122,17 @@
         (println report-str))))
 
 (comment
-  (part-1 example-input)
+  (time (part-1 example-input))
   (part-1 (utils/get-input "11")) ;; => 54752
 
-  (time (part-2 example-input))
+  (time (part-2 example-input));; 11373744
   (time (part-2 (utils/get-input "11")))
+
+  (->> (time (part-2 example-input))
+       vals
+       (sort-by :id)
+       (map :items)
+       )
 
   (let [monkeys       (parse-input example-input)
         monkey-lookup (build-monkey-lookup monkeys)

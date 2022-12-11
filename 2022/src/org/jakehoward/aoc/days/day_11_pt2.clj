@@ -3,7 +3,7 @@
             [clojure.string :as str]
             [clojure.pprint :as pprint]))
 
-(defrecord Monkey [id items worry-fn monkey-fn])
+(defrecord Monkey [id items worry-fn monkey-fn div-by])
 
 (defn op->fn [op-str]
   (let [[raw-arg op raw-arg2] (str/split op-str #" ")
@@ -50,7 +50,7 @@
         ;; ans      ["id:" id "items:" items "op:" op "test op 5:" (op 5) "div by:" div-by
                   ;; "true-m:" true-m "false-m:" false-m]
         ]
-    (->Monkey id items op next-m)))
+    (->Monkey id items op next-m div-by)))
 
 (defn parse-input
   ([input]
@@ -70,12 +70,18 @@
   "Iterate through num-rounds processing items
   returning the number of items processed by each monkey"
   [monkey-lookup num-rounds]
-  (let [in-items      (into {} (map (fn [[id m]] [id (:items m)]) (sort monkey-lookup)))
-        in-num-insp   (into {} (map (fn [[id _]] [id 0]) (sort monkey-lookup)))
+  (let [reduce-factor (apply * (map :div-by (vals monkey-lookup)))
+        min-worry     (apply min (map :div-by (vals monkey-lookup)))
+        in-items      (transient
+                       (into {} (map (fn [[id m]] [id (:items m)]) (sort monkey-lookup))))
+        in-num-insp   (transient
+                       (into {} (map (fn [[id _]] [id 0]) (sort monkey-lookup))))
         num-monkeys   (count (keys monkey-lookup))]
     (loop [rem-rounds  num-rounds
            items       in-items
            num-insp    in-num-insp]
+      (when (= 0 (mod rem-rounds 250))
+        (println "Remaining rounds:" rem-rounds))
       (if (> rem-rounds 0)
         (let [[updated-items updated-num-insp]
               (loop [monkey-id        0
@@ -88,38 +94,49 @@
                         worry-to-monkey   (map
                                            (fn [item]
                                              (let [worry  (apply (:worry-fn monkey)  [item])
+                                                   ;; worry  (if (> (- worry reduce-factor)
+                                                                 ;; min-worry)
+                                                            ;; (- worry reduce-factor)
+                                                   ;; worry)
+                                                   worry (->> (iterate #(- % reduce-factor)
+                                                                       worry)
+                                                              (drop-while #(> % min-worry))
+                                                              first
+                                                              (+ reduce-factor))
                                                    next-m (apply (:monkey-fn monkey) [worry])]
                                                [worry next-m]))
                                            all-items)
                         u-updated-items    (reduce (fn [ui [w m]]
-                                                     (assoc ui m (conj (ui m) w)))
+                                                     (assoc! ui m (conj (ui m) w)))
                                                    updated-items
                                                    worry-to-monkey)
-                        u-updated-num-insp (assoc updated-num-insp monkey-id
-                                                  (+ (count all-items)
-                                                     (updated-num-insp monkey-id)))]
+                        u-updated-items    (assoc! u-updated-items monkey-id [])
+                        u-updated-num-insp (assoc! updated-num-insp monkey-id
+                                                   (+ (count all-items)
+                                                      (updated-num-insp monkey-id)))]
                     (recur (inc monkey-id) u-updated-items u-updated-num-insp))
                   [updated-items updated-num-insp]))]
           (recur (dec rem-rounds) updated-items updated-num-insp))
 
-        (do num-insp
-            items)
-
-        ))))
+        (do
+          (persistent! num-insp)
+          ;; items
+          )))))
 
 (defn part-2 [input]
   (let [monkeys        (parse-input input)
         monkey-lookup  (build-monkey-lookup monkeys)
-        all-num-insp   (play-game monkey-lookup 1)
-        ;; score          (worry-score (vals all-num-insp))
+        all-num-insp   (play-game monkey-lookup 10000)
+        score          (worry-score (vals all-num-insp))
         ]
     all-num-insp
-    ;; score
+    score
     ))
 
 (comment
-  (time (part-2 example-input))
-  ;; {0 [79N 98N 60N 71N 81N 80N], 1 [54N 65N 75N 74N 77N 1504N 1865N 6244N 3603N 9412N], 2 [79N 60N 97N], 3 [74N 1501N 1862N 6241N 3600N 9409N]}
+  ;; ans: 2713310158
+  ;; ans-650: 11373744
+  (time (part-2 example-input)) ;; => 2713310158
   (time (part-2 (utils/get-input "11")))
 
   (def example-input
