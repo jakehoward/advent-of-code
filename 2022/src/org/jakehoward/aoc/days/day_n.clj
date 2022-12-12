@@ -13,5 +13,8 @@
 (comment
   (part-1 example-input)
   (part-1 (utils/get-input "< put day here>"))
-  (def example-input ""))
-
+  (def example-input (->
+                      ""
+                      (str/trim)))
+  ;;
+  )
