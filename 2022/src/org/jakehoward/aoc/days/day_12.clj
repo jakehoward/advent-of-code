@@ -86,6 +86,44 @@
     ;; (:yxs result)
     ))
 
+(defn- get-all-start-yxs [number-grid]
+  (for [y (range (count number-grid))
+        x (range (count (first number-grid)))
+        :when (= 0 (get-in number-grid [y x]))]
+    [y x]))
+
+(defn part-2 [input]
+  (let [letter-grid     (parse-input input)
+        start-yx        (get-start-yx letter-grid)
+        end-yx          (get-end-yx letter-grid)
+        number-grid     (build-number-grid letter-grid)
+        get-neighbours  (make-get-neighbours number-grid)
+        get-rev-nbr     (make-get-reverse-neighbours number-grid)
+        step-cost       100
+        cell-costs      (build-cell-costs number-grid)
+        all-start-yxs   (get-all-start-yxs number-grid)
+
+        ;; _               (println "all-start-yxs" all-start-yxs)
+
+        all-results
+        (loop [start-yxs  all-start-yxs
+               results    []]
+          (if-let [start-yx (first start-yxs)]
+            (let [[result _ its]  (utils/a-star-d12 start-yx
+                                                    end-yx
+                                                    step-cost
+                                                    cell-costs
+                                                    get-neighbours
+                                                    get-rev-nbr
+                                                    day12-heuristic)]
+              (if (> (count (:yxs result)) 0)
+                (recur (rest start-yxs) (conj results result))
+                (recur (rest start-yxs) results)))
+            results))]
+    ;; all-results
+    (dec (apply min (map count (map :yxs all-results))))
+    ))
+
 (def example-input
   (->
    "
@@ -100,6 +138,9 @@ abdefghi"
   (time (part-1 example-input))
   ;; 123 (too low) ;; => 440
   (time (part-1 (utils/get-input "12")))
+
+  (time (part-2 example-input))
+  (time (part-2 (utils/get-input "12"))) ;; => 439
 
   (let [letter-grid     (parse-input (utils/get-input 12))
         start-yx        (get-start-yx letter-grid)
