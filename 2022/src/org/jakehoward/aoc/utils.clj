@@ -73,6 +73,44 @@
   (+ newcost
      (estimate-cost-fn step-cost-est end-yx yx)))
 
+(defn a-star-d12 [start-yx end-yx step-est cell-costs get-neighbours get-rev-nbrs estimate-cost-fn]
+  (let [x-size (count (first cell-costs))
+        y-size (count cell-costs)]
+    (loop [steps 0
+           routes (vec (repeat y-size (vec (repeat x-size nil))))
+           work-todo (sorted-set [0 start-yx])]
+      (if (empty? work-todo)
+        (do (spit "routes.txt" routes)
+            [(get-in routes end-yx) :steps steps])
+        (let [[_ yx :as work-item]  (first work-todo)
+              rest-work-todo        (disj work-todo work-item)
+              nbr-yxs               (get-neighbours x-size y-size yx)
+              rev-nbr-yxs           (get-rev-nbrs x-size y-size yx)
+              cheapest-nbr          (min-by :cost (keep #(get-in routes %) rev-nbr-yxs))
+              newcost               (path-cost (get-in cell-costs yx) cheapest-nbr step-est)
+              oldcost               (:cost (get-in routes yx))
+              route-entry           {:cost newcost :yxs (conj (:yxs cheapest-nbr []) yx)}]
+          (cond
+
+            (and (not cheapest-nbr) (not= start-yx yx))
+            (throw (Exception. (str "No cheapest neighbour for " yx)))
+
+            (and oldcost (>= newcost oldcost))
+            (recur (inc steps) routes rest-work-todo)
+
+            (= end-yx yx)
+            (recur (inc steps)
+                   (assoc-in routes yx route-entry)
+                   (sorted-set))
+
+            :else
+            (recur (inc steps)
+                   (assoc-in routes yx route-entry)
+                   (into rest-work-todo
+                         (map (fn [w]
+                                [(total-cost estimate-cost-fn newcost step-est end-yx w) w])
+                              nbr-yxs)))))))))
+
 (defn a-star [start-yx end-yx step-est cell-costs get-neighbours estimate-cost-fn]
   (let [x-size (count (first cell-costs))
         y-size (count cell-costs)]
@@ -88,21 +126,26 @@
               newcost               (path-cost (get-in cell-costs yx) cheapest-nbr step-est)
               oldcost               (:cost (get-in routes yx))
               route-entry           {:cost newcost :yxs (conj (:yxs cheapest-nbr []) yx)}]
-          (cond (and oldcost (>= newcost oldcost))
-                (recur (inc steps) routes rest-work-todo)
+          (cond
 
-                (= end-yx yx)
-                (recur (inc steps)
-                       (assoc-in routes yx route-entry)
-                       (sorted-set))
+            (and (not cheapest-nbr) (not= start-yx yx))
+            (throw (Exception. (str "No cheapest neighbour for " yx)))
 
-                :else
-                (recur (inc steps)
-                       (assoc-in routes yx route-entry)
-                       (into rest-work-todo
-                             (map (fn [w]
-                                    [(total-cost estimate-cost-fn newcost step-est end-yx w) w])
-                                  nbr-yxs)))))))))
+            (and oldcost (>= newcost oldcost))
+            (recur (inc steps) routes rest-work-todo)
+
+            (= end-yx yx)
+            (recur (inc steps)
+                   (assoc-in routes yx route-entry)
+                   (sorted-set))
+
+            :else
+            (recur (inc steps)
+                   (assoc-in routes yx route-entry)
+                   (into rest-work-todo
+                         (map (fn [w]
+                                [(total-cost estimate-cost-fn newcost step-est end-yx w) w])
+                              nbr-yxs)))))))))
 
 ;; Usage example
 (comment
