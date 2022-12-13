@@ -13,29 +13,39 @@
         (> l r) false))
 
 (defn is-correct? [l r]
-  (comment (println "l:" l "r:" r))
-  (cond (and (sequential? l) (sequential? r))
-        (cond (and (empty? l) (seq r))    true
-              (and (empty? r) (seq l))    false
-              (and (empty? l) (empty? r)) nil
-              :else                       (if-some [ans (is-correct? (first l) (first r))]
-                                            ans
-                                            (is-correct? (rest l) (rest r))))
+  (try
+    (comment (println "l:" l "r:" r))
+    (cond (and (sequential? l) (sequential? r))
+          (cond (and (empty? l) (empty? r)) nil
+                (and (empty? l) (seq r))    true
+                (and (empty? r) (seq l))    false
+                :else                       (if-some [ans (is-correct? (first l) (first r))]
+                                              ans
+                                              (is-correct? (rest l) (rest r))))
 
-        (and (sequential? l) (int? r))
-        (if-some [ans (is-correct? l [r])]
-          ans
-          (is-correct? (rest l) (rest r)))
+          (and (sequential? l) (int? r))
+          (if-some [ans (is-correct? l [r])]
+            ans
+            ;; (is-correct? (rest l) (rest r))
+            false
+            )
 
-        (and (sequential? r) (int? l))
-        (if-some [ans (is-correct? [l] r)]
-          ans
-          (is-correct? (rest l) (rest r)))
+          (and (sequential? r) (int? l))
+          (if-some [ans (is-correct? [l] r)]
+            ans
+            ;; (is-correct? (rest l) (rest r))
+            false
+            )
 
-        (and (int? l) (int? r))
-        (is-correct-int? l r)
+          (and (int? l) (int? r))
+          (is-correct-int? l r)
 
-        :else (throw (Exception. (str "Missing case, l: " l " r: " r)))))
+          :else (throw (Exception. (str "Missing case, l: " l " r: " r))))
+    (catch Exception e (println "l:" l "r:" r (.getMessage e)))))
+
+(defn is-correct-comp [l r]
+  (if (is-correct? l r) -1 1))
+
 (comment
   (is-correct? [1] [2])
 
@@ -82,9 +92,23 @@
         correct-idxs  (get-correct-packet-idxs packet-pairs)]
     (reduce + correct-idxs)))
 
+(defn part-2 [input]
+  (let [packet-pairs   (parse-input input)
+        divider-1      [[2]]
+        divider-2      [[6]]
+        all-packets    (concat [divider-1 divider-2] (reduce concat packet-pairs))
+        sorted-packets (sort is-correct-comp all-packets)]
+
+    (*
+     (inc (.indexOf sorted-packets divider-1))
+     (inc (.indexOf sorted-packets divider-2)))))
+
 (comment
   (part-1 example-input)
   (part-1 (utils/get-input "13")) ;; => 5684
+
+  (part-2 example-input)
+  (part-2 (utils/get-input "13")) ;; => 22932
 
   (def example-input (->
                       "
