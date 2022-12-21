@@ -113,9 +113,9 @@
                                                     end-yx
                                                     step-cost
                                                     cell-costs
-                                                    get-neighbours
-                                                    get-rev-nbr
-                                                    day12-heuristic)]
+                                                    (memoize get-neighbours)
+                                                    (memoize get-rev-nbr)
+                                                    (memoize day12-heuristic))]
               (if (> (count (:yxs result)) 0)
                 (recur (rest start-yxs) (conj results result))
                 (recur (rest start-yxs) results)))
