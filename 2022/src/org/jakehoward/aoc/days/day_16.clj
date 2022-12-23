@@ -1,6 +1,7 @@
 (ns org.jakehoward.aoc.days.day-16
   (:require [org.jakehoward.aoc.utils :as utils]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [clojure.set :as set]))
 
 (defn parse-line [line]
   (let [[_ v _ _ rate-str] (str/split line #"\s+")
@@ -28,6 +29,22 @@
     (if (not= 0 c)
       c
       (compare (:route (second x)) (:route (second y))))))
+
+;; {:total-flow 0 :minute 0 :current-valve "AA" :on-valves #{}}
+(defn flow-comp [x y]
+  (let [c (compare (:total-flow x) (:total-flow y))
+        c1 (compare (count (:on-valves x)) (count (:on-valves y)))
+        c2 (* -1 (compare (:minute x) (:minute y)))
+        c3 (compare (:current-valve x) (:current-valve y))]
+    (if (= 0 c)
+      (if (= 0 c1)
+        (if (= 0 c2)
+          (if (= 0 c3)
+            (compare (vec (:on-valves x)) (vec (:on-valves y)))
+            c3)
+          c2)
+        c1)
+      c)))
 
 (defn has-circular-route [{:keys [route]}]
   (< (count (set route)) (count route)))
@@ -60,14 +77,106 @@
         (throw (Exception. (str "Could not find route from: " from " to: " to)))))))
 
 ;; {:total-flow 0 :minute 0 :current-valve "AA" :on-valves #{}}
-(defn max-flow-rate [valves-index valve->rate]
-  (loop [work-items (apply sorted-set-by first-comp )]))
+;; (map (fn [v] [0 (assoc default-state :current-valve v)])
+;; (:leads-to (get valves-index "AA")))
+;; (def MAX_TIME 3)
+(def MAX_TIME 30)
+
+(defn get-updated-total-flow [valve->rate total-flow on-valves minutes]
+  (->> on-valves
+       (map (fn [v] (* (valve->rate v) minutes)))
+       (reduce +)
+       (+ total-flow)))
+
+(defn finalise-rates [{:keys [total-flow minute current-valve on-valves] :as item} valve->rate]
+  ;; (println "tf:" total-flow "ov:" on-valves "ms:" (- MAX_TIME minute))
+  (-> item
+      (assoc :total-flow
+             (get-updated-total-flow valve->rate total-flow on-valves (- MAX_TIME minute)))
+      (assoc :minute MAX_TIME)))
+
+(defn process-unopened-valve-wtf-was-i-thinking
+  [unopened-valve item valves-index valve->rate get-shortest-path]
+  (let [{:keys [total-flow minute current-valve on-valves]} item
+        from           current-valve
+        tos            (-> (get valves-index current-valve) :leads-to)]
+    (for [to tos]
+      (let [{:keys [cost]}   (get-shortest-path valves-index current-valve to)
+            u-minute         (+ minute cost 1)
+            u-on-valves      (conj on-valves to)
+            u-total-flow     (get-updated-total-flow valve->rate total-flow on-valves cost)]
+        (if (<= u-minute MAX_TIME)
+          {:total-flow u-total-flow :minute u-minute :current-valve to :on-valves u-on-valves}
+          (-> item
+              (assoc :minute MAX_TIME)
+              (assoc :total-flow
+                     (get-updated-total-flow
+                      valve->rate total-flow on-valves (- MAX_TIME minute)))))))))
+
+(defn process-unopened-valve
+  [unopened-valve item valves-index valve->rate get-shortest-path]
+  (let [{:keys [total-flow minute current-valve on-valves]} item
+        from           current-valve]
+    (let [to               unopened-valve
+          {:keys [cost]}   (get-shortest-path valves-index current-valve to)
+            u-minute         (+ minute cost 1)
+            u-on-valves      (conj on-valves to)
+            u-total-flow     (get-updated-total-flow valve->rate total-flow on-valves cost)]
+        (if (<= u-minute MAX_TIME)
+          {:total-flow u-total-flow :minute u-minute :current-valve to :on-valves u-on-valves}
+          (-> item
+              (assoc :minute MAX_TIME)
+              (assoc :total-flow
+                     (get-updated-total-flow
+                      valve->rate total-flow on-valves (- MAX_TIME minute))))))))
+
+(defn get-next-work-items
+  "Takes a work item and returns a list of new work-items
+  representing the various options from given node or nil
+  if all the work has been done"
+  [{:keys [total-flow minute current-valve on-valves] :as item}
+   non-zero-valves
+   valves-index
+   valve->rate
+   get-shortest-path]
+
+  (if (= (count non-zero-valves) (count on-valves))
+    nil
+    (let [unopened-valves (set/difference non-zero-valves on-valves)]
+      ;; (println "uovs:" unopened-valves)
+      (->> unopened-valves
+           (map
+            (fn [unopened-valve]
+              (process-unopened-valve
+               unopened-valve item valves-index valve->rate get-shortest-path)))
+           (filter #(not (nil? %)))))))
+
+(def default-state {:total-flow 0 :minute 0 :current-valve nil :on-valves #{}})
+
+(defn max-flow-rate [valves-index valve->rate get-shortest-path]
+  (let [non-zero-valves (set (map first (filter #(> (second %) 0) valve->rate)))]
+    (loop [work-items (sorted-set-by flow-comp (assoc default-state :current-valve "AA"))
+           completed  (sorted-set-by flow-comp)]
+
+      (comment
+        (println "\n")
+        (clojure.pprint/pprint work-items))
+
+      (if-let [item (last work-items)]
+        (let [next-work-items (get-next-work-items item non-zero-valves valves-index valve->rate get-shortest-path)]
+          (if (or (nil? next-work-items) (= MAX_TIME (:minute item)))
+            (recur (disj work-items item) (conj completed item))
+            (recur (apply conj (disj work-items item) next-work-items) completed)))
+
+        completed))))
 
 (defn part-1 [input]
-  (let [valves        (parse-input input)
-        valves-index  (build-index valves :valve)
-        valve->rate   (build-lookup valves :valve :rate)
-        ans           valves-index]
+  (let [valves         (parse-input input)
+        valves-index   (build-index valves :valve)
+        valve->rate    (build-lookup valves :valve :rate)
+        all-flow-rates (max-flow-rate valves-index valve->rate (memoize get-lowest-cost-route))
+        final-rates    (map #(finalise-rates % valve->rate) all-flow-rates)
+        ans            (-> (sort-by :total-flow final-rates) last)]
     ans))
 
 (comment
@@ -77,10 +186,10 @@
          lcr           (get-lowest-cost-route valves-index "AA" "HH")
          ans           lcr]
      ans))
+  (parse-input example-input)
 
-  (part-1 example-input)
-  (part-1 (utils/get-input "16"))
-
+  (time (part-1 example-input))
+  (time (part-1 (utils/get-input "16")))
 
   ;; Perf ideas
   ;; - use keywords instead of strings for valve names (or...are strings interned already?)
@@ -99,4 +208,14 @@ Valve II has flow rate=0; tunnels lead to valves AA, JJ
 Valve JJ has flow rate=21; tunnel leads to valve II"
                       (str/trim)))
   ;;
-  )
+  (apply sorted-set-by flow-comp
+         [(-> default-state
+              (assoc :total-flow 1)
+              (assoc :minute 1)
+              (assoc :current-valve "BB")
+              (assoc :on-valves #{"AA"}))
+          (-> default-state
+              (assoc :total-flow 1)
+              (assoc :minute 1)
+              (assoc :current-valve "BB")
+              (assoc :on-valves #{"AA" "BB"}))]))
