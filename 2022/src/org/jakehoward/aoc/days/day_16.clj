@@ -95,40 +95,18 @@
              (get-updated-total-flow valve->rate total-flow on-valves (- MAX_TIME minute)))
       (assoc :minute MAX_TIME)))
 
-(defn process-unopened-valve-wtf-was-i-thinking
-  [unopened-valve item valves-index valve->rate get-shortest-path]
-  (let [{:keys [total-flow minute current-valve on-valves]} item
-        from           current-valve
-        tos            (-> (get valves-index current-valve) :leads-to)]
-    (for [to tos]
-      (let [{:keys [cost]}   (get-shortest-path valves-index current-valve to)
-            u-minute         (+ minute cost 1)
-            u-on-valves      (conj on-valves to)
-            u-total-flow     (get-updated-total-flow valve->rate total-flow on-valves cost)]
-        (if (<= u-minute MAX_TIME)
-          {:total-flow u-total-flow :minute u-minute :current-valve to :on-valves u-on-valves}
-          (-> item
-              (assoc :minute MAX_TIME)
-              (assoc :total-flow
-                     (get-updated-total-flow
-                      valve->rate total-flow on-valves (- MAX_TIME minute)))))))))
-
 (defn process-unopened-valve
   [unopened-valve item valves-index valve->rate get-shortest-path]
   (let [{:keys [total-flow minute current-valve on-valves]} item
         from           current-valve]
     (let [to               unopened-valve
           {:keys [cost]}   (get-shortest-path valves-index current-valve to)
-            u-minute         (+ minute cost 1)
-            u-on-valves      (conj on-valves to)
-            u-total-flow     (get-updated-total-flow valve->rate total-flow on-valves cost)]
-        (if (<= u-minute MAX_TIME)
-          {:total-flow u-total-flow :minute u-minute :current-valve to :on-valves u-on-valves}
-          (-> item
-              (assoc :minute MAX_TIME)
-              (assoc :total-flow
-                     (get-updated-total-flow
-                      valve->rate total-flow on-valves (- MAX_TIME minute))))))))
+          u-minute         (+ minute cost 1)
+          u-on-valves      (conj on-valves to)
+          u-total-flow     (get-updated-total-flow valve->rate total-flow on-valves (inc cost))]
+      (if (<= u-minute MAX_TIME)
+        {:total-flow u-total-flow :minute u-minute :current-valve to :on-valves u-on-valves}
+        (finalise-rates item valve->rate)))))
 
 (defn get-next-work-items
   "Takes a work item and returns a list of new work-items
@@ -159,8 +137,9 @@
            completed  (sorted-set-by flow-comp)]
 
       (comment
-        (println "\n")
-        (clojure.pprint/pprint work-items))
+        (doseq [i work-items
+                :when (or (= (:on-valves i) #{"DD"}) (= (:on-valves i) #{"DD" "BB"}))]
+          (println "m:" (:minute i) "ov:" (:on-valves i) "\tt:" (:total-flow i))))
 
       (if-let [item (last work-items)]
         (let [next-work-items (get-next-work-items item non-zero-valves valves-index valve->rate get-shortest-path)]
@@ -188,11 +167,19 @@
      ans))
   (parse-input example-input)
 
+  (time (part-1 simple-example-input))
   (time (part-1 example-input))
-  (time (part-1 (utils/get-input "16")))
+  (time (part-1 (utils/get-input "16"))) ;; => 1792 (22 seconds)
 
   ;; Perf ideas
   ;; - use keywords instead of strings for valve names (or...are strings interned already?)
+
+  (def simple-example-input (->
+                             "
+Valve AA has flow rate=0; tunnels lead to valves DD, BB
+Valve BB has flow rate=13; tunnels lead to valves AA
+Valve DD has flow rate=20; tunnels lead to valves AA"
+                             (str/trim)))
 
   (def example-input (->
                       "
