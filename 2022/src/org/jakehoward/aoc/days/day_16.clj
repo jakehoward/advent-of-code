@@ -59,6 +59,10 @@
               (recur updated-work))))
         (throw (Exception. (str "Could not find route from: " from " to: " to)))))))
 
+;; {:total-flow 0 :minute 0 :current-valve "AA" :on-valves #{}}
+(defn max-flow-rate [valves-index valve->rate]
+  (loop [work-items (apply sorted-set-by first-comp )]))
+
 (defn part-1 [input]
   (let [valves        (parse-input input)
         valves-index  (build-index valves :valve)
