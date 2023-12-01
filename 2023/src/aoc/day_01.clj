@@ -16,23 +16,37 @@
 (defn token->int [t]
   (max (.indexOf num-strs t) (.indexOf word-strs t)))
 
-(comment (map token->int (concat num-strs (rest word-strs))))
+(comment (map #((juxt identity token->int) %) all-tokens))
 
 
 (defn line->num-tokens [line]
   (->> all-tokens
-       (map (fn [token] [token (str/index-of line token)]))
-       (filter (fn [[t idx]] (not (nil? idx))))
+       (map (fn [token] [token (str/index-of line token)]));; no - can happen twice, need all idxs
+       (remove (fn [[t idx]] (nil? idx)))
        (sort-by second)
        (map first)))
 
+(defn line->tokens [line]
+  (loop [tokens []
+         s      line]
+    (if (empty? s)
+      tokens
+      (let [found (->> all-tokens
+                       (map (fn [token] [token (str/index-of s token)]))
+                       (filter (fn [[t idx]] (= 0 idx)))
+                       ffirst)]
+        (if found
+          (recur (conj tokens found) (.substring s 1))
+          (recur tokens (.substring s 1)))))))
+
+
 (comment
-  (->> (line->num-tokens "sdfoneight1sevenine19")
+  (->> (line->tokens "sdfoneight1sevenine19")
        (map #((juxt identity token->int) %))))
 
 (defn pt2 [input]
   (let [lines       (str/split-lines input)
-        lnums       (map line->num-tokens lines)
+        lnums       (map line->tokens lines)
         fst-lst     (map (fn [nums] ((juxt first last) nums)) lnums)
         nums-2-sumz (map (fn [[a b]] (str (token->int a) (token->int b))) fst-lst)
         ans         (sum (map #(Integer/parseInt %) nums-2-sumz))
@@ -54,7 +68,7 @@ zoneight234
 
 (comment
   (run-test-data)
-  (pt2 input)
+  (pt2 input) ;; 54518
   )
 
 
@@ -65,23 +79,23 @@ zoneight234
 ;;; ---------------------------------------------------
 
 
-(defn figure-it-out-no-overlaps [line]
-  (loop [tokens []
-         s      line]
-    ;; if index-of any of the tokens is zero add to found and remove from s
-    (if (empty? s)
-      tokens
+(comment(defn figure-it-out-no-overlaps [line]
+          (loop [tokens []
+                 s      line]
+            ;; if index-of any of the tokens is zero add to found and remove from s
+            (if (empty? s)
+              tokens
 
-      (let [found
-            (->> (concat num-strs num-words)
-                 (map (fn [token] [token (str/index-of s token)]))
-                 (filter (fn [[t idx]] (and idx (zero? idx))))
-                 first)]
-        (if found
-          (recur (conj tokens (first found)) (if (>= (count s) (count (first found)))
-                                               (.substring s (count (first found)))
-                                               ""))
-          (recur tokens (.substring s 1)))))))
+              (let [found
+                    (->> (concat num-strs num-words)
+                         (map (fn [token] [token (str/index-of s token)]))
+                         (filter (fn [[t idx]] (and idx (zero? idx))))
+                         first)]
+                (if found
+                  (recur (conj tokens (first found)) (if (>= (count s) (count (first found)))
+                                                       (.substring s (count (first found)))
+                                                       ""))
+                  (recur tokens (.substring s 1))))))))
 
 
 (defn pt1 [input]
