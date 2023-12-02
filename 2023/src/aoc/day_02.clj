@@ -44,9 +44,23 @@ Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green")
         ans        (u/sum poss-ids)]
     ans))
 
+(defn add-max-draw [game]
+  (let [draws     (:draws game)
+        max-draws (reduce (partial merge-with max) draws)]
+    (assoc game :max-draws max-draws)))
+
+(defn pt2 [input]
+  (let [lines      (str/split-lines input)
+        games      (map parse-game lines)
+        games      (map add-max-draw games)
+        powers     (map #(reduce * 1 (-> % :max-draws vals)) games)
+        ans        (u/sum powers)]
+    ans))
+
 
 
 (comment
+  (pt2 input);; 72596
   (pt1 input)
   
   (type (-> (str/split-lines example) first (str/split #": ") second (str/split #"; ")))
