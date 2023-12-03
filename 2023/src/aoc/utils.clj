@@ -2,6 +2,9 @@
   (:require [clojure.java.io :as io]
             [clojure.string :as str]))
 
+;; =====
+;; input
+;; =====
 (defn get-input [day]
   (-> (format "day-%s.txt" day)
       io/resource
@@ -20,6 +23,9 @@
        lines
        (map split-line)
        vec))
+
+(defn cols [rows]
+  (apply map vector rows))
 
 (comment
   (let [input "abc\ndef"]
@@ -43,6 +49,9 @@
           (mapv #(mapv + [y x] %))
           (filterv (fn [[new-y new-x]] (and (< -1 new-y y-size) (< -1 new-x x-size))))))))
 
+;; ==========================
+;; 2d cartesian co-oridinates
+;; ==========================
 (defn get-neighbours-yx
   ([matrix yx] (get-neighbours-yx matrix yx {}))
   ([matrix yx opts]
@@ -67,14 +76,28 @@
   ;;
          )
 
+;; =======
+;; parsing
+;; =======
 (defn parse-int [s] (Integer/parseInt s))
 
+
+;; ===========
+;; convenience
+;; ===========
 (defn sum [xs] (reduce + 0 xs))
 
-(def a->z (->> (range 97 (+ 97 26))
-               (map char)))
+;; ====
+;; data
+;; ====
 
-(def A->Z (map #(Character/toUpperCase %) a->z))
+(def a->z-chars (->> (range 97 (+ 97 26))
+                     (map char)))
+(def a->z (mapv str a->z-chars))
+(def A->Z-chars (map #(Character/toUpperCase %) a->z-chars))
+(def A->Z (mapv str A->Z-chars))
 
-(defn cols [rows]
-  (apply map vector rows))
+(def zero->nine-strings #{"0" "1" "2" "3" "4" "5" "6" "7" "8" "9"})
+
+
+
