@@ -87,7 +87,33 @@
         ans  (utils/sum num-with-sym)]
     ans))
 
+(defn pt2 [input]
+  (let [matrix       (utils/input->matrix input)
+        tokens       (mapcat parse-row matrix (range))
+        type->tokens (group-by type tokens)
+        gear-yxs     (->> (get type->tokens aoc.day_03.Sym)
+                          (filterv #(= "*" (:text %)))
+                          (mapv :yx-coord)
+                          set)
+        ans          (->> gear-yxs
+                          (map (fn [gyx] (->> (get type->tokens aoc.day_03.Num)
+                                              (filter
+                                               #(seq (set/intersection (num->neighbour-yx matrix %)
+                                                                       #{gyx}))))))
+                          (filter (fn [ns] (= 2 (count ns))))
+                          (map #(map :n %))
+                          (map #(apply * %))
+                          utils/sum)
+        ;; ans nums-i-like
+        ;; ans gear-yxs
+        ]
+    ans))
+
 (comment
+  (time (pt2 input));; 87263515
+  (-> (pt2 example)
+      (clojure.pprint/pprint))
+
   (-> (pt1 example)
       (clojure.pprint/pprint))
 
