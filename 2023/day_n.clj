@@ -1,7 +1,6 @@
 (ns aoc.day-{{ns-n}}
   (:require [aoc.utils :as u]
-            [clojure.string :as str]
-            [clojure.set :as set]))
+            [clojure.string :as str]))
 
 (def example (str/trim ""))
 (def input (u/get-input {{n}}))
@@ -21,7 +20,7 @@
 (comment
   (pt1 example)
   (pt1 input)
-  (pt example)
-  (pt input)
+  (pt2 example)
+  (pt2 input)
 ;
 )
