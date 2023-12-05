@@ -89,25 +89,42 @@ humidity-to-location map:
     {:name m-name :dsls dest-src-lens}))
 
 (defn apply-mapping-to-range [mapping range]
-  (loop [ranges   [range]
-         mappings  (map :dsls mapping)]
+  (loop [ranges           [range]
+         attempted-ranges []
+         mapped-ranges    []
+         mappings         (:dsls mapping)]
+    ;; (println "ranges:" ranges "attempted:" attempted-ranges "mapped:" mapped-ranges "mappings:" (count mappings))
     (if (empty? mappings)
-      (let [m                             (first mapping)
-            r                             (first ranges)
-            {:keys [overlaps new-ranges]} (split-ranges m r)
-            new-range                     (if overlaps
-                                            (->Range ((:src->dest m) (:start r))
-                                                     ((:src->dest m) (:end r)))
-                                            nil)]
-        ))))
+      (into [] (concat ranges attempted-ranges mapped-ranges))
+      (if (empty? ranges)
+        (recur attempted-ranges [] mapped-ranges (rest mappings))
+        (let [m                             (first mappings)
+              r                             (first ranges)
+              ;; _ (println m)
+              ;; _ (println (:src-range m))
+              {:keys [overlaps new-ranges]} (split-ranges (:src-range m) r)
+              mapped-range                  (if overlaps
+                                              (->Range ((:src->dest m) (:start overlaps))
+                                                       ((:src->dest m) (:end overlaps)))
+                                              nil)
+              new-attempted-ranges          (into attempted-ranges new-ranges)
+              new-mapped-ranges             (if mapped-range
+                                              (conj mapped-ranges mapped-range)
+                                              mapped-ranges)]
+          (recur (rest ranges) new-attempted-ranges new-mapped-ranges mappings))))))
 
-;; (comment
-;;   (fn [s]
-;;     (let [{:keys [overlaps new-ranges]}
-;;           (split-ranges (->Range dest (+ dest len)) s)]
-;;       {:dest-range (->Range (src->dest (:start overlaps))
-;;                             (src->dest (:end overlaps)))
-;;        :new-ranges new-ranges})))
+(defn seed-range->location-ranges [seed-range all-mappings]
+  (loop [ranges   [seed-range]
+         mappings all-mappings]
+    ;; (println "ranges:" ranges)
+    (if (empty? mappings)
+      ranges
+      (recur (mapcat (fn [r] (apply-mapping-to-range (first mappings) r)) ranges)
+             (rest mappings)))))
+
+(defn follow-the-trail-ranges [data]
+  (let [{:keys [seed-ranges mappings]} data]
+    (mapcat #(seed-range->location-ranges % mappings) seed-ranges)))
 
 (defn parse-input [input]
   (let [chunks   (str/split input #"\n\n")
@@ -122,6 +139,14 @@ humidity-to-location map:
     {:seeds seeds
      :seed-ranges (map (fn [[start len]] (->Range start (+ start len))) (partition 2 seeds))
      :mappings mappings}))
+
+(comment
+  (let [{:keys [seed-ranges mappings]} (parse-input example)]
+    (apply-mapping-to-range (first mappings) (first seed-ranges)))
+
+  (follow-the-trail-ranges (parse-input example))
+  ;
+  )
 
 (defn next-loc [mapping loc]
   (let [answers (mapv #((:src->dest %) loc) (:dsls mapping))]
@@ -140,26 +165,6 @@ humidity-to-location map:
                       seed
                       (:mappings data))))))
 
-(defn follow-the-trail-ranges-gah [data]
-  (->> data
-       :seed-ranges
-       (map (fn [seed-range]
-              (reduce (fn [loc mapping]
-                        (next-loc mapping loc))
-                      seed-range
-                      (:mappings data))))))
-
-(defn mapping->ranges [])
-
-(defn follow-the-trail-ranges [data]
-  (->> data
-       :seed-ranges
-       (map (fn [seed-range]
-              (reduce (fn [loc mapping]
-                        (next-loc mapping loc))
-                      seed-range
-                      (:mappings data))))))
-
 (comment
   (parse-input example)
   ;
@@ -173,14 +178,14 @@ humidity-to-location map:
 (defn pt2 [input]
   (let [parsed (parse-input input)
         ans    (follow-the-trail-ranges parsed)]
-    ans))
+    (:start (first (sort-by :start ans)))))
 
 (comment
   (pt1 example)
   (pt1 input)   ;; 309796150
   (pt2 example)
   ;; (count (:seeds-pt2 (parse-input input))) ;; never finishes
-  (time (pt2 input))
+  (time (pt2 input)) ;; 50716416
 ;
   )
 
