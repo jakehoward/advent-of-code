@@ -79,7 +79,13 @@
 ;; =======
 ;; parsing
 ;; =======
-(defn parse-int [s] (Integer/parseInt s))
+;; todo
+;; require [clojure.edn :as edn]
+;; change to (edn/read-string "3409451394")
+;; (deals with big ints)
+;; ??
+
+(defn parse-int [s] (Long/parseLong s))
 
 
 ;; ===========
