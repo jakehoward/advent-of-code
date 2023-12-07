@@ -92,6 +92,9 @@
 ;; convenience
 ;; ===========
 (defn sum [xs] (reduce + 0 xs))
+(defn reverse-mapping [m] (reduce-kv (fn [acc k v] (assoc acc v k)) {} m))
+(comment (reverse-mapping {:from :to :A :B}))
+
 
 ;; ====
 ;; data
