@@ -101,18 +101,6 @@ QQQJA 483"))
 
         resolved))))
 
-(defn hand-type-pt2 [{:keys [hand] :as all}]
-  (let [cards       (str/split (resolve-jokers hand) #"")
-        card-counts (->> (group-by identity cards) (map second) (map count) sort reverse)]
-    (condp = card-counts
-      [5]       :five
-      [4 1]     :four
-      [3 2]     :full-house
-      [3 1 1]   :three
-      [2 2 1]   :two-pair
-      [2 1 1 1] :pair
-      :high)))
-
 (defn parse-input [input]
   (->> (str/split-lines input)
        (map (fn [l] (let [[h b] (str/split l #"\s+")] {:hand h :bid (u/parse-int b)})))))
@@ -128,7 +116,7 @@ QQQJA 483"))
 
 (defn pt2 [input]
   (let [hands (->> (parse-input input)
-                   (map #(assoc % :type (hand-type-pt2 %)))
+                   (map #(assoc % :type (hand-type (update % :hand resolve-jokers))))
                    (map #(assoc % :strength (hand-strength %))))
         sorted-hands (reverse (sort-hands-s->w card->num-pt2 hands))
         scores       (map (fn [h r] (* r (:bid h))) sorted-hands (drop 1 (range)))
