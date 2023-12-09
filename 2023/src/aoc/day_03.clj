@@ -1,6 +1,5 @@
 (ns aoc.day-03
-  (:require [aoc.utils :as utils]
-            [clojure.string :as str]
+  (:require [clojure.string :as str]
             [aoc.utils :as u]
             [clojure.set :as set]))
 
@@ -15,13 +14,13 @@
 ...$.*....
 .664.598..")
 
-(def input (utils/get-input 3))
+(def input (u/get-input 3))
 
 (defrecord Num [n yx-coords])
 (defrecord Sym [text yx-coord])
 
 (defn is-sym-text? [s]
-  (and (not (contains? utils/int-strings s))
+  (and (not (contains? u/zero->nine-strings s))
        (not= "." s)))
 
 (defn num-collector->Number [items]
@@ -45,7 +44,7 @@
         tokens)
 
       (let [entry        (first rem)
-            entry-is-int (contains? utils/int-strings entry)
+            entry-is-int (contains? u/zero->nine-strings entry)
             next-nc      (if entry-is-int
                            (conj num-collector [entry [row-y idx]])
                            [])
@@ -63,7 +62,7 @@
 (defn num->neighbour-yx [matrix num]
   (->> num
        :yx-coords
-       (mapv #(utils/get-neighbours-coords-yx matrix %))
+       (mapv #(u/get-neighbours-coords-yx matrix %))
        (apply concat)
        set))
 
@@ -74,7 +73,7 @@
     (num->neighbour-yx m n)))
 
 (defn pt1 [input]
-  (let [matrix       (utils/input->matrix input)
+  (let [matrix       (u/input->matrix input)
         tokens       (mapcat parse-row matrix (range))
         type->tokens (group-by type tokens)
         sym-yxs      (->> (get type->tokens aoc.day_03.Sym)
@@ -84,11 +83,11 @@
                           (filter #(seq (set/intersection (num->neighbour-yx matrix %)
                                                           sym-yxs)))
                           (map :n))
-        ans  (utils/sum num-with-sym)]
+        ans  (u/sum num-with-sym)]
     ans))
 
 (defn pt2 [input]
-  (let [matrix       (utils/input->matrix input)
+  (let [matrix       (u/input->matrix input)
         tokens       (mapcat parse-row matrix (range))
         type->tokens (group-by type tokens)
         gear-yxs     (->> (get type->tokens aoc.day_03.Sym)
@@ -103,7 +102,7 @@
                           (filter (fn [ns] (= 2 (count ns))))
                           (map #(map :n %))
                           (map #(apply * %))
-                          utils/sum)
+                          u/sum)
         ;; ans nums-i-like
         ;; ans gear-yxs
         ]
@@ -120,10 +119,10 @@
   (time (pt1 input))
 
   (let [line  "467..114.."
-        linet (utils/split-line line)]
+        linet (u/split-line line)]
     (parse-row linet 0))
 
-  (map parse-row (map utils/split-line (str/split-lines example)) (range))
+  (map parse-row (map u/split-line (str/split-lines example)) (range))
 
   (mapcat (fn [item row-idx] [item row-idx]) [[:a :b] [:c :d]] (range))
   ;
