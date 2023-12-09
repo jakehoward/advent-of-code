@@ -57,6 +57,6 @@
   (pt1 example)
   (pt1 input)
   (pt2 example)
-  (pt2 input) 1026
+  (pt2 input)
 ;
 )
