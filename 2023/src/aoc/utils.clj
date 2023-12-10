@@ -49,6 +49,16 @@
           (mapv #(mapv + [y x] %))
           (filterv (fn [[new-y new-x]] (and (< -1 new-y y-size) (< -1 new-x x-size))))))))
 
+(defn matrix-out-of-bounds? [m [y x]]
+  (let [x-size (count (first m))
+        y-size (count m)]
+    (not (and (< -1 y y-size)
+              (< -1 x x-size)))))
+
+(comment
+  (matrix-out-of-bounds? [[nil nil nil] [nil nil nil]] [2 2])
+  )
+
 ;; ==========================
 ;; 2d cartesian co-oridinates
 ;; ==========================
