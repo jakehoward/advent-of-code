@@ -71,18 +71,13 @@
                            num-expanded-before-y (->> row-ex (take y) (filter identity) count)]
                        [(+ (* 999999N num-expanded-before-y) y) (+ (* 999999N num-expanded-before-x) x)]))
         galaxy-pairs   (unique-pairs galaxy-yxs)
-        shortest-paths (map shortest-path galaxy-pairs)
-        ans     {:row-expansions row-ex
-                 :col-expansions col-ex
-                 :galaxy-yxs galaxy-yxs
-                 ;; :pairs (unique-pairs galaxy-yxs)
-                 :shortest-paths shortest-paths}]
-    (u/sum (:shortest-paths ans))))
+        shortest-paths (map shortest-path galaxy-pairs)]
+    (u/sum shortest-paths)))
 
 (comment
   (pt1 example)
   (pt1 input)
   (pt2 example)
-  (pt2 input) 512240933238N  ;; 512241445470 (too high) ;; 271457245470N ???
+  (pt2 input)
 ;
 )
