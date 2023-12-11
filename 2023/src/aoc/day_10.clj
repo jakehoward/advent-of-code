@@ -315,7 +315,7 @@ L7JLJL-JLJLJL--JLJ.L"))
                             (str "Nope, try again: " start-coord))
         start-idx   (.indexOf (vec ord-route) start-coord)
         ;; restart the route with that new start co-ord
-        normalised-route  (take (count ord-route)
+        normalised-route (take (count ord-route)
                                 (drop start-idx (cycle ord-route)))
         start-symbol (if (= "S" (get-in matrix start-coord)) s-val (get-in matrix start-coord))
         in-dir (cond (= start-symbol "|") :right
