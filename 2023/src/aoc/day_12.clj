@@ -101,9 +101,6 @@
 (defn- ways-to-add-group [[template min-idx] group-size]
   ;; return all the ways a group could be inserted into the template
   ;; at or after min-idx
-  ;; todo: missing the fork in the path where you could have chosen
-  ;;       to just drop one character from the remaining template
-  ;;       (when it's possible to add a group)
   (loop [rem-template     (drop min-idx (str/split template #""))
          used-template    (vec (take min-idx (str/split template #"")))
          filled-templates []]
@@ -112,6 +109,7 @@
       filled-templates
 
       (let [can-insert-group      (and (every? #(#{"#" "?"} %) (take group-size rem-template))
+                                       (not= "#" (last used-template))
                                        (or (= (count rem-template) group-size)
                                            (#{"." "?"} (nth rem-template group-size))))
             next-is-?             (and (> (count rem-template) group-size)
@@ -133,16 +131,23 @@
                                                    [(if next-is-? "." "")]
                                                    next-rem-template))
                                            the-min-idx])
-                                    filled-templates)]
+                                    filled-templates)
+            next-filled-with-fork  (if can-insert-group
+                                     (into next-filled-templates
+                                           (ways-to-add-group [template (inc (count used-template))]
+                                                              group-size))
+                                     next-filled-templates)]
         (recur next-rem-template
                next-used-template
-               next-filled-templates)))))
+               next-filled-with-fork)))))
 
 (comment
   (type (str (str/join (repeat 3 "#"))))
   (ways-to-add-group ["??#?." 0] 2)
+  (ways-to-add-group ["?###?" 0] 3)
   )
 
+;; has a bug - approx 5x faster than brute force
 (defn smarter-ways-per-line [{:keys [template groups]}]
   (loop [rem-groups       groups
          partially-filled [[template 0]]]
@@ -153,9 +158,14 @@
     ;; when all groups have been used, all "partially filled" will
     ;; be valid combos. Count. Win.
     (if (empty? rem-groups)
-      (count partially-filled)
+      (count (set (map (fn [[t]] (str/replace t "?" ".")) partially-filled)))
       (recur (rest rem-groups)
              (mapcat #(ways-to-add-group % (first rem-groups)) partially-filled)))))
+
+(comment
+  (smarter-ways-per-line {:template "??.??.###" :groups [1 1 3]})
+  (smarter-ways-per-line {:template "?###????????" :groups [3 2 1]})
+  )
 
 (defn pt1 [input]
   (let [parsed (parse-input input)
@@ -167,6 +177,11 @@
   (let [parsed (parse-input input)
         ways   (map faster-ways-per-line parsed)
         ans    (map #(count (:ways %)) ways)]
+    (u/sum ans)))
+
+(defn smarter-pt1 [input]
+  (let [parsed (parse-input input)
+        ans    (map smarter-ways-per-line parsed)]
     (u/sum ans)))
 
 (defn pt2 [input]
@@ -200,8 +215,10 @@
   (pt2 input)
   (time (pt1 example))
   (time (faster-pt1 example))
+  (time (smarter-pt1 example))
   (time (pt1 input))
   (time (faster-pt1 input))
+  (time (smarter-pt1 input))
   (pt1 input) ;; 7792
 
   (ways-per-line {:template "???.###" :groups [1,1,3]})
