@@ -84,7 +84,12 @@
                       [:d :e :f]
                       [:g :h :1]] [2 0] {:diagonals false})
   ;;
-         )
+  )
+
+(defn matrix-coords-yx [matrix]
+  (for [y (range (count matrix))
+        x (range (count (first matrix)))]
+    [y x]))
 
 ;; =======
 ;; parsing
