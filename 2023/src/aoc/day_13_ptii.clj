@@ -1,4 +1,4 @@
-(ns aoc.day-13
+(ns aoc.day-13ii
   (:require [aoc.utils :as u]
             [clojure.string :as str]))
 
@@ -54,7 +54,7 @@
                              (filter (fn [[y x]] (if (= smaller-partition :left)
                                                    (<= x clamp-left)
                                                    (>= x clamp-right)))))]
-    (every? #(has-partner-col? matrix col-clamp %) coords-to-match)))
+    (= 1 (count (filter #(not (has-partner-col? matrix col-clamp %)) coords-to-match)))))
 
 (defn is-reflection-row? [row-clamp matrix]
   (let [y-size (count matrix)
@@ -64,11 +64,15 @@
                              (filter (fn [[y x]] (if (= smaller-partition :top)
                                                    (<= y clamp-top)
                                                    (>= y clamp-bottom)))))]
-    (every? #(has-partner-row? matrix row-clamp %) coords-to-match)))
+    (= 1 (count (filter #(not (has-partner-row? matrix row-clamp %)) coords-to-match)))))
 
 (comment
   (is-reflection-col? [4 5] (first (parse-input example)))
   (is-reflection-row? [0 1] (first (parse-input example)))
+
+  ;; pt2
+  (is-reflection-row? [2 3] (first (parse-input example)))
+  (is-reflection-col? [4 5] (first (parse-input example)))
 
   (is-reflection-row? [0 1] (second (parse-input example)))
   (is-reflection-row? [3 4] (second (parse-input example))))
@@ -107,15 +111,10 @@
     [(if (nil? col-reflection) 0 (second col-reflection))
      (if (nil? row-reflection) 0 (* 100 (second row-reflection)))] ))
 
-(defn pt1 [input]
+(defn pt2 [input]
   (let [parsed (parse-input input)
         reflection-summaries    (mapcat find-reflection parsed)
         ans (u/sum reflection-summaries)]
-    ans))
-
-(defn pt2 [input]
-  (let [parsed (parse-input input)
-        ans    parsed]
     ans))
 
 ;; add up the number of columns
@@ -125,9 +124,7 @@
 ;; above each horizontal line of reflection.
 
 (comment
-  (pt1 example)
-  (pt1 input) ;; 34911
   (pt2 example)
-  (pt2 input)
+  (pt2 input) ;; 33183
 ;
 )
