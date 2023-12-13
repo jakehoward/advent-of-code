@@ -98,6 +98,64 @@
                  (inc steps)
                  (+ pruned (- (count baking) (count possible-baking)))))))))
 
+(defn- ways-to-add-group [[template min-idx] group-size]
+  ;; return all the ways a group could be inserted into the template
+  ;; at or after min-idx
+  ;; todo: missing the fork in the path where you could have chosen
+  ;;       to just drop one character from the remaining template
+  ;;       (when it's possible to add a group)
+  (loop [rem-template     (drop min-idx (str/split template #""))
+         used-template    (vec (take min-idx (str/split template #"")))
+         filled-templates []]
+    (if (or (< (count rem-template) group-size) (empty? rem-template))
+
+      filled-templates
+
+      (let [can-insert-group      (and (every? #(#{"#" "?"} %) (take group-size rem-template))
+                                       (or (= (count rem-template) group-size)
+                                           (#{"." "?"} (nth rem-template group-size))))
+            next-is-?             (and (> (count rem-template) group-size)
+                                       (= "?" (nth rem-template group-size)))
+            next-rem-template     (if can-insert-group
+                                    (drop (+ group-size (if next-is-? 1 0)) rem-template)
+                                    (drop 1 rem-template))
+            next-used-template    (if can-insert-group
+                                    (into used-template
+                                          (take (+ group-size (if next-is-? 1 0)) rem-template))
+                                    (into used-template (take 1 rem-template)))
+            the-min-idx           (+ (count used-template) group-size) ;; ?? + 1 => 3
+            next-filled-templates (if can-insert-group
+                                    (conj filled-templates
+                                          [(apply str
+                                                  (concat
+                                                   used-template
+                                                   (repeat group-size "#")
+                                                   [(if next-is-? "." "")]
+                                                   next-rem-template))
+                                           the-min-idx])
+                                    filled-templates)]
+        (recur next-rem-template
+               next-used-template
+               next-filled-templates)))))
+
+(comment
+  (type (str (str/join (repeat 3 "#"))))
+  (ways-to-add-group ["??#?." 0] 2)
+  )
+
+(defn smarter-ways-per-line [{:keys [template groups]}]
+  (loop [rem-groups       groups
+         partially-filled [[template 0]]]
+    ;; loop over all partially filled templates one group at a time
+    ;; adding all variations of that group going into the template
+    ;; and adding that to the partially filled list. If you can't
+    ;; add the group, kill that branch by not adding it to the list
+    ;; when all groups have been used, all "partially filled" will
+    ;; be valid combos. Count. Win.
+    (if (empty? rem-groups)
+      (count partially-filled)
+      (recur (rest rem-groups)
+             (mapcat #(ways-to-add-group % (first rem-groups)) partially-filled)))))
 
 (defn pt1 [input]
   (let [parsed (parse-input input)
@@ -115,10 +173,8 @@
   (let [parsed (parse-input input)
         ways   (map faster-ways-per-line parsed)
         ;; ans    (map count ways)
-        ans ways
-        ]
+        ans ways]
     ans))
-
 
 (comment
   (pt2 example)
@@ -169,6 +225,6 @@
        (map count))
 
   (get (group-by #(.contains % "?") ["asde?"]) false)
-  
+
 ;
-)
+  )
