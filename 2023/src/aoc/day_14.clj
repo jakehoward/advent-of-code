@@ -111,7 +111,7 @@ O.#..O.#.#
           match-idx   (ffirst matches)]
 
       (cond (= 1 (count matches))
-            {:cycle-starts match-idx :cycle-length (dec (- num-cycles match-idx))}
+            {:cycle-starts match-idx :cycle-length (- num-cycles match-idx)}
 
             (> num-cycles 1000)
             (throw (Exception. "Max iterations exceeded for num-cycles-unitl-repeat"))
@@ -163,7 +163,7 @@ O.#..O.#.#
   (time (pt2 example))
   (time (debug example 0))
 
-  (time (pt2 input)) ;; 96333 (too high) ;; 96345 (too high)
+  (time (pt2 input)) ;; 96317 ;; 96333 (too high) ;; 96345 (too high)
 
   (take 3 (iterate inc 1))
 
