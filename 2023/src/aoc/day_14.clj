@@ -62,7 +62,9 @@ O.#..O.#.#
                                                 (= "#" (get-in matrix [y x]))
                                                 "#"
                                                 :else "."))
-                                        (partition x-size)))
+                                        (partition x-size)
+                                        (map vec)
+                                        vec))
 
         matrix-after-north       (->> (u/cols matrix)
                                       (map roll-boulders)
@@ -98,20 +100,26 @@ O.#..O.#.#
         ans (mapcat (fn [rbi] (map #(- col-count %) rbi)) all-rolled-boulder-idxs)]
     (u/sum ans)))
 
+;;     |---- cycle ---|
+;; s---x----------- see-x
+
 (defn num-cycles-until-repeat [matrix]
-  (loop [current matrix
-         seen    #{}
-         steps   0]
-    (cond (contains? seen current)
-          steps
+  (loop [current    matrix
+         idx-seen   []
+         num-cycles 0]
+    (let [matches (filter #(= current (second %)) idx-seen)
+          match-idx   (ffirst matches)]
 
-          (> steps 100)
-          (throw (Exception. "Max iterations exceeded for num-cycles-unitl-repeat"))
+      (cond (= 1 (count matches))
+            {:cycle-starts match-idx :cycle-length (dec (- num-cycles match-idx))}
 
-          :else
-          (recur (cycle-boulders current)
-                 (conj seen current)
-                 (inc steps)))))
+            (> num-cycles 1000)
+            (throw (Exception. "Max iterations exceeded for num-cycles-unitl-repeat"))
+
+            :else
+            (recur (cycle-boulders current)
+                   (conj idx-seen [num-cycles current])
+                   (inc num-cycles))))))
 
 (defn score-col [col]
   (let [boulder-idxs (->> col
@@ -124,27 +132,44 @@ O.#..O.#.#
 
 (defn pt2 [input]
   (let [parsed              (parse-input input)
-        cycles-until-repeat (num-cycles-until-repeat parsed)
-        extra-cycles        (rem 1000000000 cycles-until-repeat)
+        {:keys [cycle-starts cycle-length]} (num-cycles-until-repeat parsed)
+        _        (println "Cycles unitl repeat, starts:" cycle-starts "length:" cycle-length )
+        extra-cycles        (rem (- 1000000000 cycle-starts) cycle-length)
         final-matrix        (->> (iterate cycle-boulders parsed)
-                                 (take (+ 1 cycles-until-repeat extra-cycles))
+                                 (take (+ 1 cycle-starts extra-cycles))
                                  last)
         y-size (count parsed)
-        ans  (->> final-matrix
-                  u/cols
-                  (map score-col)
-                  u/sum)]
-    ans))
+        scores (->> final-matrix
+                    u/cols
+                    (map score-col))]
+    ;; {:final-matrix final-matrix :scores scores :score (u/sum (flatten scores))}
+    (u/sum scores)))
+
+(defn debug [input cycles]
+  (let [parsed              (parse-input input)
+        final-matrices      (->> (iterate cycle-boulders parsed)
+                                 (take 24))
+        scores              (->> final-matrices
+                                 (map (fn [m] (->> m
+                                                   u/cols
+                                                   (map score-col)
+                                                   u/sum))))]
+    scores))
+
+;;       x
+;; S 1 2 3 4 5 6 7 8 9 10 11
 
 (comment
   (time (pt2 example))
-  (time (pt2 input))
+  (time (debug example 0))
+
+  (time (pt2 input)) ;; 96333 (too high) ;; 96345 (too high)
 
   (take 3 (iterate inc 1))
 
-  (rem 1000000000 3)
+  (rem 1000000000 102)
 
-  (time (pt1 example))
+  (time (pt1 example)) ;; 136
   (time (pt1 input)) ;; 107430
   ;; (/ (* 7 1e9) (* 1000 60 60 24))
   
