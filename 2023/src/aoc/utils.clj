@@ -91,6 +91,30 @@
         x (range (count (first matrix)))]
     [y x]))
 
+(defn right [[y x]]
+  [y (inc x)])
+
+(defn right? [this-yx [y x]]
+  (= this-yx [y (dec x)]))
+
+(defn left [[y x]]
+  [y (dec x)])
+
+(defn left? [this-yx [y x]]
+  (= this-yx [y (inc x)]))
+
+(defn below [[y x]]
+  [(inc y) x])
+
+(defn below? [this-yx [y x]]
+  (= this-yx [(dec y) x]))
+
+(defn above [[y x]]
+  [(dec y) x])
+
+(defn above? [this-yx [y x]]
+  (= this-yx [(inc y) x]))
+
 ;; =======
 ;; parsing
 ;; =======
