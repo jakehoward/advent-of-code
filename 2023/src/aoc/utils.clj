@@ -32,12 +32,10 @@
     (->> input
          input->matrix)))
 
-(defn get-neighbours-coords-yx
-  ([matrix yx] (get-neighbours-coords-yx matrix yx {}))
-  ([matrix [y x] {:keys [diagonals] :or {diagonals true}}]
-   (let [x-size (count (first matrix))
-         y-size (count matrix)
-         deltas [[-1 0] [1 0] [0 -1] [0 1]]
+(defn get-neighbours-coords-yx-sz
+  ([y-size x-size yx] (get-neighbours-coords-yx-sz y-size x-size yx {}))
+  ([y-size x-size [y x] {:keys [diagonals] :or {diagonals true}}]
+   (let [deltas [[-1 0] [1 0] [0 -1] [0 1]]
          deltas (into deltas (if diagonals [[-1 1] [1 1] [1 -1] [-1 -1]] []))]
 
      (when (>= y y-size)
@@ -49,11 +47,21 @@
           (mapv #(mapv + [y x] %))
           (filterv (fn [[new-y new-x]] (and (< -1 new-y y-size) (< -1 new-x x-size))))))))
 
+(defn get-neighbours-coords-yx
+  ([matrix yx] (get-neighbours-coords-yx matrix yx {}))
+  ([matrix yx opts]
+   (let [x-size (count (first matrix))
+         y-size (count matrix)]
+     (get-neighbours-coords-yx-sz y-size x-size yx opts))))
+
 (defn matrix-out-of-bounds? [m [y x]]
   (let [x-size (count (first m))
         y-size (count m)]
     (not (and (< -1 y y-size)
               (< -1 x x-size)))))
+
+(defn y-size [matrix] (count matrix))
+(defn x-size [matrix] (count (first matrix)))
 
 (comment
   (matrix-out-of-bounds? [[nil nil nil] [nil nil nil]] [2 2])
