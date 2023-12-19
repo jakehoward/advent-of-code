@@ -139,7 +139,10 @@
            routes (vec (repeat y-size (vec (repeat x-size nil))))
            work-todo (sorted-set-by work-item-sorter [0 {:yx start-yx :dir :right}])]
       (if (or (> steps 5000) (empty? work-todo))
-        {:route (peek (peek routes)) :num-steps steps} ;; assumes ends at bottom right (the peek peek)
+        {:route (peek (peek routes))
+         :route-len (count (:yxs (peek (peek routes))))
+         :num-steps steps} ;; assumes ends at bottom right (the peek peek)
+
         (let [[_ item :as work-item] (first work-todo)
               {:keys [yx dir]}     item
               rest-work-todo       (disj work-todo work-item)
