@@ -139,6 +139,12 @@
 ;; convenience
 ;; ===========
 (defn sum [xs] (reduce + 0 xs))
+(defn build-unique-index [xs k] (reduce (fn [acc item]
+                                          (assert (nil? (get acc (get item k)))
+                                                  (str "Cannot duplicate key: '" (get item k) "' in unique index"))
+                                          (assoc acc (get item k) item)) {} xs))
+(comment (build-unique-index [{:name "foo" :vals :blah} {:name "bar" :vals :splat}] :name)
+         (build-unique-index [{:name "foo" :vals :blah} {:name "foo" :vals :splat}] :name))
 (defn reverse-mapping [m] (reduce-kv (fn [acc k v] (assoc acc v k)) {} m))
 (comment (reverse-mapping {:from :to :A :B}))
 

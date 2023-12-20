@@ -21,41 +21,6 @@
 (defn parse-input [input]
   (mapv #(mapv u/parse-int %) (u/input->matrix input)))
 
-(defn get-next-yxs-old [y-size x-size path]
-  ;; if 3 in same direction in a row, have to do 90 degree turn
-  ;; otherwise straight on, or 90 degree turn
-  (let [last-3  (take-last 3 path)
-        [second-last-yx last-yx] (take-last 2 path)
-        [last-yx] (take-last 1 path)
-        ;; _ (println "s:" second-last-yx "l:" last-yx "p:" path)
-        direction (cond (= [[0 0]] path)
-                        :right
-                        (u/below? second-last-yx last-yx)
-                        :down
-                        (u/right? second-last-yx last-yx)
-                        :right
-                        (u/left? second-last-yx last-yx)
-                        :left
-                        (u/above? second-last-yx last-yx)
-                        :up
-                        :else (throw (Exception. (str "Unexpected, path: " path))))
-        straight-ahead (case direction
-                         :down  (u/below last-yx)
-                         :up    (u/above last-yx)
-                         :left  (u/left last-yx)
-                         :right (u/right last-yx))
-        lr-90s         (case direction
-                         :down  [(u/left last-yx)  (u/right last-yx)]
-                         :up    [(u/right last-yx) (u/left last-yx)]
-                         :left  [(u/above last-yx) (u/below last-yx)]
-                         :right [(u/below last-yx) (u/above last-yx)])
-        in-bounds?     (fn [[y x]] (and (< -1 y y-size) (< -1 x x-size)))]
-    (if (and (= 3 (count last-3))
-             (or (every? (fn [[y x]] (= y (ffirst last-3))) last-3)
-                 (every? (fn [[y x]] (= x (second (first last-3)))) last-3)))
-      (into (vec (filter in-bounds? lr-90s)) [last-yx])
-      (into (vec (filter in-bounds? (into [straight-ahead] lr-90s))) [last-yx]))))
-
 (defn min-by [f coll]
   (when (seq coll)
     (reduce (fn [min other]
@@ -76,6 +41,32 @@
   (+ newcost
      (estimate-cost step-cost-est matrix y x)))
 
+(defn get-run-length [direction yx routes]
+  (let [nbr-fn (case direction :right u/left :left u/right :down u/above :up u/below)
+        path   (-> (or (get-in routes (into (nbr-fn yx) [:yxs])) [])
+                   (into [yx]))
+        run-fn (case direction
+                 :right (fn [[[ay ax] [by bx]]] (and (= ay by)
+                                                     (= 1 (- ax bx))))
+                 :left  (fn [[[ay ax] [by bx]]] (and (= ay by)
+                                                     (= 1 (- bx ax))))
+                 :down  (fn [[[ay ax] [by bx]]] (and (= ax bx)
+                                                     (= 1 (- ay by))))
+                 :up    (fn [[[ay ax] [by bx]]] (and (= ax bx)
+                                                     (= 1 (- by ay)))))
+        run-length (->> path
+                        reverse
+                        (partition 2 1)
+                        (take-while run-fn)
+                        (map first)
+                        count
+                        (+ 1))
+        ;; _ (println "path:" path "runl:" run-length)
+        ]
+    (if (= 0 (count path))
+      0
+      run-length)))
+
 (defn get-nbr-yxs [y-size x-size yx direction routes]
   ;; if 3 in same direction in a row, have to do 90 degree turn
   ;; otherwise straight on, or 90 degree turn
@@ -84,37 +75,58 @@
                          :up    {:yx (u/above yx) :dir :up}
                          :left  {:yx (u/left yx)  :dir :left}
                          :right {:yx (u/right yx) :dir :right})
+        num-in-row     (get-run-length direction yx routes)
+        ;; _ (println "num in row:" num-in-row)
         lr-90s         (case direction
                          :down  [{:yx (u/left yx) :dir :left}  {:yx (u/right yx) :dir :right}]
                          :up    [{:yx (u/right yx) :dir :right} {:yx (u/left yx) :dir :left}]
                          :left  [{:yx (u/above yx) :dir :up} {:yx (u/below yx) :dir :down}]
                          :right [{:yx (u/below yx) :dir :down} {:yx (u/above yx) :dir :up}])
+        ;; todo: these nbrs aren't actually possible
+        ;;       as there may have been no way to get
+        ;;       to this point in this direction (or
+        ;;       even if there were, it wasn't the route)
+        ;;       => maybe the route has to have coords and
+        ;;          direciton rather than just yx
         poss-prev-nbrs (case direction
-                         :down  [{:yx (u/above yx) :dir :down} {:yx (u/above yx) :dir :right} {:yx (u/above yx) :dir :left}]
-                         :up    [{:yx (u/below yx) :dir :up} {:yx (u/below yx) :dir :right} {:yx (u/below yx) :dir :left}]
-                         :left  [{:yx (u/right yx) :dir :left} {:yx (u/right yx) :dir :up} {:yx (u/right yx) :dir :down}]
-                         :right [{:yx (u/left yx) :dir :right} {:yx (u/right yx) :dir :up} {:yx (u/right yx) :dir :down}])
+                         :down  [{:yx (u/above yx) :dir :down}
+                                 {:yx (u/above yx) :dir :right}
+                                 {:yx (u/above yx) :dir :left}]
+                         :up    [{:yx (u/below yx) :dir :up}
+                                 {:yx (u/below yx) :dir :right}
+                                 {:yx (u/below yx) :dir :left}]
+                         :left  [{:yx (u/right yx) :dir :left}
+                                 {:yx (u/right yx) :dir :up}
+                                 {:yx (u/right yx) :dir :down}]
+                         :right [{:yx (u/left yx) :dir :right}
+                                 {:yx (u/left yx) :dir :up}
+                                 {:yx (u/left yx) :dir :down}])
         prev-nbrs      (->> poss-prev-nbrs
                             (filter (fn [{:keys [yx]}] (seq (get-in routes yx))))
                             vec)
         in-bounds?     (fn [[y x]] (and (< -1 y y-size) (< -1 x x-size)))
-        ;; poss-nbrs      (u/get-neighbours-coords-yx-sz y-size x-size yx {:diagonals false})
-        ;; todo: see if out of possible nbrs there are valid ones
-        ;;       given the direction and yx. If so, is straight on a
-        ;;       valid choice?
-        all-nbrs (->> (into [straight-ahead] (concat lr-90s prev-nbrs))
+
+        all-nbrs (->> (into (if (<= num-in-row 3) [straight-ahead] [])
+                            (concat lr-90s prev-nbrs))
                       (filter (fn [{:keys [yx]}] (in-bounds? yx)))
                       vec)
         ]
     all-nbrs))
 
+;; (comment (pt1 example))
+
 (comment
   (get-nbr-yxs 3 3 [0 0] :right [[nil nil nil] [nil nil nil]])
-  (get-nbr-yxs 4 4 [0 0] :right [[[{:cost 1 :yxs [[0 0]]}]
-                                   [{:cost 1 :yxs [[0 0] [0 1]]}]
-                                   [{:cost 1 :yxs [[0 0] [0 1] [0 2]]}]
+  (get-nbr-yxs 4 4 [0 2] :right [[{:cost 1 :yxs [[0 0]]}
+                                  {:cost 1 :yxs [[0 0] [0 1]]}
+                                  {:cost 1 :yxs [[0 0] [0 1] [0 2]]}
                                    nil]
-                                  [nil nil nil]])
+                                 [nil nil nil]])
+  (get-nbr-yxs 4 4 [0 1] :left [[nil
+                                 nil
+                                 {:cost 1 :yxs [[0 3] [0 2]]}
+                                 {:cost 1 :yxs [[0 3]]}]
+                                [nil nil nil]])
   ;
   )
 
@@ -130,7 +142,6 @@
       (conj [3 {:yx [1 1] :dir :up}])
       (conj [1 {:yx [1 1] :dir :up}])))
 
-(comment (pt1 example))
 (defn a-star [start-yx step-est cell-costs cost-to-move]
   (println "-- Starting A* --")
   (let [y-size (u/y-size cell-costs)
@@ -138,7 +149,7 @@
     (loop [steps 0
            routes (vec (repeat y-size (vec (repeat x-size nil))))
            work-todo (sorted-set-by work-item-sorter [0 {:yx start-yx :dir :right}])]
-      (if (or (> steps 5000) (empty? work-todo))
+      (if (or (> steps 50000) (empty? work-todo))
         {:route (peek (peek routes))
          :route-len (count (:yxs (peek (peek routes))))
          :num-steps steps} ;; assumes ends at bottom right (the peek peek)
@@ -170,8 +181,27 @@
 
 
 (defn pt1 [input]
-  (let [matrix (parse-input input)
-        ans    (a-star [0 0] 1 matrix 1)]
+  (let [matrix    (parse-input input)
+        path-res  (a-star [0 0] 1 matrix 1)
+        route     (get-in path-res [:route :yxs])
+        route-set (set route)
+        heat-cost (->> (drop 1 route)
+                       (map (fn [yx] (get-in matrix yx)))
+                       u/sum)
+        viz      (->> (for [y (range (count matrix))
+                            x (range (count (first matrix)))]
+                        (cond (contains? route-set [y x])
+                             "x"
+                             :else
+                             "."))
+                      (partition (count (first matrix)))
+                      (map vec)
+                      vec)
+        ans         path-res
+        ;; ans      route-set
+        ;; ans      heat-cost
+        ;; ans      viz
+        ]
     ans))
 
 (defn pt2 [input]
