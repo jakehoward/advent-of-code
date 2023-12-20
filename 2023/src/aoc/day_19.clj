@@ -1,6 +1,7 @@
 (ns aoc.day-19
   (:require [aoc.utils :as u]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [clojure.math.combinatorics :refer [combinations]]))
 
 (def example (str/trim "
 px{a<2006:qkq,m>2090:A,rfg}
@@ -41,7 +42,6 @@ hdj{m>838:A,pv}
          ((parse-condition "x>2345") {"x" 2346}))
 
 (defn- condition-range [segment-str]
-  (println "Seg-str:" segment-str)
   (let [[_ v f-str n-str] (re-matches #"(.)(.)(.+)" (-> (str/split segment-str #":") first))
         n (u/parse-int n-str)
         r (cond (= "<" f-str)
@@ -209,20 +209,42 @@ hdj{m>838:A,pv}
 
 (comment (let [x :hex] (case x :hey :there :foo)))
 
+(defn- double-count-amount [[r1 r2]]
+  ;; (clojure.pprint/pprint { :r1  r1  :r2  r2 })
+  (->> {:x (range-overlap (:x r1) (:x r2))
+        :m (range-overlap (:m r1) (:m r2))
+        :a (range-overlap (:a r1) (:a r2))
+        :s (range-overlap (:s r1) (:s r2))}
+       vals
+       (map (fn [{:keys [from to]}] (if (not= from to) (inc (- to from)) 0)))
+       (reduce * 1)))
+
 (defn pt2 [input]
   (println "---- Pt2 ----")
   (let [{:keys [rules]} (parse-input input)
         paths  (paths-to-A-ii rules)
         ranges (map reduce-range paths)
+        all-combinations (->> ranges
+                              (map #(apply * (map (fn [{:keys [from to]}] (if (not= from to) (inc (- to from)) 0)) (vals %))))
+                              u/sum)
+        double-counts    (->> (combinations ranges 2)
+                              (map double-count-amount)
+                              u/sum)
         ans    paths
         ans    ranges
-        ;; ans rules
+        ans rules
+        ans all-combinations
+        ans double-counts
+        ans (- all-combinations double-counts)
         ]
     ans))
 
 (comment
   ;; x,m,a,s [1,4000]
-  (pt2 example)
+  ;; 256000000000000 (* 4000 4000 4000 4000)
+  ;; 256661886000000 all-combos (including double counting)
+  ;;  95157656700000 double-counts
+  (pt2 example) ;; 161504229300000
   ;; paths
   [[{:target "in", :range {:key :all, :range #aoc.day_19.Range{:from 1, :to 4000}}}
     {:target "px", :range {:key :s, :range #aoc.day_19.Range{:from 1, :to 1350}}}
@@ -233,7 +255,7 @@ hdj{m>838:A,pv}
 
   (pt2 input)
 
-
+  (combinations [:a :b :c :d] 2)
   (pt1 example) ;; 19114
   (pt1 input) ;; 446935
 
