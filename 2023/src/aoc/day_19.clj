@@ -3,6 +3,9 @@
             [clojure.string :as str]
             [clojure.math.combinatorics :refer [combinations]]))
 
+;; bug: need to take into account conditions before the one
+;;      being parsed to know the true range
+
 (def example (str/trim "
 px{a<2006:qkq,m>2090:A,rfg}
 pv{a>1716:R,A}
@@ -124,7 +127,7 @@ hdj{m>838:A,pv}
         ]
     ans))
 
-(defn paths-to-A [rules]
+(defn foo [rules]
   (loop [work  [["in"]]
          paths []
          steps 0]
@@ -147,26 +150,28 @@ hdj{m>838:A,pv}
   (loop [work  [[{:target "in" :range {:key :all :range (->Range 1 4000)}}]]
          paths []
          steps 0]
-    (when (> steps 20)
-      (throw (Exception. "You ran out of steps paths-to-A, buddy")))
+    (when (> steps 200)
+      (throw (Exception. "You ran out of steps in paths-to-A-ii, buddy")))
     (if (empty? work)
       (filterv #(= "A" (:target (last %))) paths)
       (let [updated-work (->> work
-                              (mapv (fn [wi] (let [target       (:target (last wi))
-                                                   rule         (get rules target)
-                                                   next-targets (mapv (fn [{:keys [target range]}]
-                                                                        {:target target :range range}) (:conditions rule))]
-                                               (mapv #(conj wi %) next-targets))))
+                              (mapv (fn [wi]
+                                      (let [target       (:target (last wi))
+                                            rule         (get rules target)
+                                            next-targets (mapv (fn [{:keys [target range]}]
+                                                                 {:target target :range range})
+                                                               (:conditions rule))]
+                                        (mapv #(conj wi %) next-targets))))
                               (apply concat)
                               (into []))
             completed    (filterv #(#{"A" "R"} (:target (last %))) updated-work)
             incomplete   (filterv #(not (#{"A" "R"} (:target (last %)))) updated-work)]
-        (recur incomplete completed (inc steps))))))
+        (recur incomplete (into paths completed) (inc steps))))))
 
 
 
 (comment
-  (paths-to-A (:rules (parse-input example)))
+  (paths-to-A-ii (:rules (parse-input example)))
   (->> [[:a] [:b]]
        (map (fn [v] [:and v]))
        (apply concat)
@@ -197,15 +202,20 @@ hdj{m>838:A,pv}
   (range-overlap (->Range 1 3) (->Range 2 5))
   (range-overlap (->Range 11 20) (->Range 2 5)))
 
-(defn- reduce-range [path]
-  (let [initial {:x (->Range 1 4000) :m (->Range 1 4000) :a (->Range 1 4000) :s (->Range 1 4000)}]
-    (reduce
-     (fn [acc-range {:keys [target range]}]
-       (case (:key range)
-         :all acc-range ;; assume unchanged
-         (assoc acc-range (:key range) (range-overlap (:range range) (get acc-range (:key range))))))
-     initial
-     path)))
+(defn- reduce-range
+  ([path]
+   (let [full-range (->Range 1 4000)
+         initial {:x full-range :m full-range :a full-range :s full-range}]
+     (reduce-range path initial)))
+  ([path initial]
+   (reduce
+      (fn [acc-range {:keys [target range]}]
+        (case (:key range)
+          :all acc-range ;; assume unchanged
+          (assoc acc-range (:key range) (range-overlap (:range range) (get acc-range (:key range))))))
+      initial
+      path)
+   ))
 
 (comment (let [x :hex] (case x :hey :there :foo)))
 
@@ -216,7 +226,7 @@ hdj{m>838:A,pv}
         :a (range-overlap (:a r1) (:a r2))
         :s (range-overlap (:s r1) (:s r2))}
        vals
-       (map (fn [{:keys [from to]}] (if (not= from to) (inc (- to from)) 0)))
+       (map (fn [{:keys [from to]}] (if (and (not= 0 from) (not= 0 to)) (inc (- to from)) 0)))
        (reduce * 1)))
 
 (defn pt2 [input]
@@ -225,26 +235,32 @@ hdj{m>838:A,pv}
         paths  (paths-to-A-ii rules)
         ranges (map reduce-range paths)
         all-combinations (->> ranges
-                              (map #(apply * (map (fn [{:keys [from to]}] (if (not= from to) (inc (- to from)) 0)) (vals %))))
+                              (map #(apply * (map (fn [{:keys [from to]}]
+                                                    (if (and (not= 0 from) (not= 0 to))
+                                                      (inc (- to from))
+                                                      0)) (vals %))))
                               u/sum)
         double-counts    (->> (combinations ranges 2)
                               (map double-count-amount)
                               u/sum)
+        _ (doseq [p paths] (clojure.pprint/pprint (map :target p)))
+        _ (clojure.pprint/pprint ranges)
         ans    paths
         ans    ranges
-        ans rules
-        ans all-combinations
-        ans double-counts
-        ans (- all-combinations double-counts)
-        ]
-    ans))
+        ans    rules]
+    {:ans (- all-combinations double-counts) :all all-combinations :dbl double-counts}))
 
 (comment
   ;; x,m,a,s [1,4000]
   ;; 256000000000000 (* 4000 4000 4000 4000)
   ;; 256661886000000 all-combos (including double counting)
   ;;  95157656700000 double-counts
-  (pt2 example) ;; 161504229300000
+  ;; 496534091000000 all
+  ;; 421012480808000 double
+  ;;  75521610192000 ans
+  ;; 167409079868000 correct
+  (pt2 example)
+
   ;; paths
   [[{:target "in", :range {:key :all, :range #aoc.day_19.Range{:from 1, :to 4000}}}
     {:target "px", :range {:key :s, :range #aoc.day_19.Range{:from 1, :to 1350}}}
@@ -258,6 +274,40 @@ hdj{m>838:A,pv}
   (combinations [:a :b :c :d] 2)
   (pt1 example) ;; 19114
   (pt1 input) ;; 446935
+
+  (defn pt2-debug []
+  (println "---- Pt2 debug ----")
+  (let [{:keys [rules]} (parse-input input)
+        paths  [[{:range {:key :x :range (->Range 1 3)}}
+                 {:range {:key :m :range (->Range 1 3)}}
+                 {:range {:key :a :range (->Range 1 3)}}
+                 {:range {:key :s :range (->Range 1 3)}}]
+                [{:range {:key :x :range (->Range 1 1)}}]]
+
+        paths  [[{:range {:key :x :range (->Range 1 2)}}
+                 {:range {:key :m :range (->Range 1 2)}}
+                 {:range {:key :a :range (->Range 1 2)}}
+                 {:range {:key :s :range (->Range 1 2)}}]
+                [{:range {:key :x :range (->Range 1 2)}}
+                 {:range {:key :m :range (->Range 1 2)}}
+                 {:range {:key :a :range (->Range 1 3)}}
+                 {:range {:key :s :range (->Range 1 2)}}]]
+
+        ranges (map #(reduce-range % {:x (->Range 1 3)
+                                      :m (->Range 1 3)
+                                      :a (->Range 1 3)
+                                      :s (->Range 1 3)}) paths)
+        all-combinations (->> ranges
+                              (map #(apply * (map (fn [{:keys [from to]}]
+                                                    (if (and (not= 0 from) (not= 0 to))
+                                                      (inc (- to from))
+                                                      0)) (vals %))))
+                              u/sum)
+        double-counts    (->> (combinations ranges 2)
+                              (map double-count-amount)
+                              u/sum)
+        ans (- all-combinations double-counts)]
+    {:ans ans :all all-combinations :dbl double-counts}))
 
 
   (partition-by even? [2 2 2 2])
