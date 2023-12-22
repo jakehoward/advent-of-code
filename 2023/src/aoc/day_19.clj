@@ -30,6 +30,32 @@ hdj{m>838:A,pv}
 ;; inclusive
 (defrecord Range [from to])
 
+(defn overlaps? [r1 r2]
+  (and (<= (:from r1) (:to r2))
+       (>= (:to r1) (:from r2))
+       (<= (:from r2) (:to r1))
+       (>= (:to r2) (:from r1))))
+
+(defn range-overlap [r1 r2]
+  ;; ---x-----y---
+  ;; -x----y------
+  ;; ------x----y-
+  ;; -x---------y-
+  ;; ---- x-y-----
+  (let [from (max (:from r1) (:from r2))
+        to   (min (:to r1) (:to r2))]
+    (if (overlaps? r1 r2)
+      (->Range from to)
+      (->Range 0 0))))
+
+(comment
+  (range-overlap (->Range 0 10) (->Range 10 15))
+  (range-overlap (->Range 0 10) (->Range 5 10))
+  (range-overlap (->Range 0 10) (->Range 11 20))
+  (range-overlap (->Range 1 3) (->Range 2 5))
+  (range-overlap (->Range 11 20) (->Range 2 5)))
+
+
 (defn- parse-condition [condition-str]
   (let [spy false
         [_ v f-str n-str] (re-matches #"(.)(.)(.+)" condition-str)
@@ -127,25 +153,6 @@ hdj{m>838:A,pv}
         ]
     ans))
 
-(defn foo [rules]
-  (loop [work  [["in"]]
-         paths []
-         steps 0]
-    (when (> steps 20)
-      (throw (Exception. "You ran out of steps paths-to-A, buddy")))
-    (if (empty? work)
-      (filterv #(= "A" (last %)) paths)
-      (let [updated-work (->> work
-                              (mapv (fn [wi] (let [target       (last wi)
-                                                   rule         (get rules target)
-                                                   next-targets (mapv :target (:conditions rule))]
-                                               (mapv #(conj wi %) next-targets))))
-                              (apply concat)
-                              (into []))
-            completed    (filterv #(#{"A" "R"} (last %)) updated-work)
-            incomplete   (filterv #(not (#{"A" "R"} (last %))) updated-work)]
-        (recur incomplete completed (inc steps))))))
-
 (defn paths-to-A-ii [rules]
   (loop [work  [[{:target "in" :range {:key :all :range (->Range 1 4000)}}]]
          paths []
@@ -159,6 +166,8 @@ hdj{m>838:A,pv}
                                       (let [target       (:target (last wi))
                                             rule         (get rules target)
                                             next-targets (mapv (fn [{:keys [target range]}]
+                                                                 ;; todo: need the ranges of
+                                                                 ;; all before this point too
                                                                  {:target target :range range})
                                                                (:conditions rule))]
                                         (mapv #(conj wi %) next-targets))))
@@ -167,40 +176,6 @@ hdj{m>838:A,pv}
             completed    (filterv #(#{"A" "R"} (:target (last %))) updated-work)
             incomplete   (filterv #(not (#{"A" "R"} (:target (last %)))) updated-work)]
         (recur incomplete (into paths completed) (inc steps))))))
-
-
-
-(comment
-  (paths-to-A-ii (:rules (parse-input example)))
-  (->> [[:a] [:b]]
-       (map (fn [v] [:and v]))
-       (apply concat)
-       (into [])))
-
-(defn overlaps? [r1 r2]
-  (and (<= (:from r1) (:to r2))
-       (>= (:to r1) (:from r2))
-       (<= (:from r2) (:to r1))
-       (>= (:to r2) (:from r1))))
-
-(defn range-overlap [r1 r2]
-  ;; ---x-----y---
-  ;; -x----y------
-  ;; ------x----y-
-  ;; -x---------y-
-  ;; ---- x-y-----
-  (let [from (max (:from r1) (:from r2))
-        to   (min (:to r1) (:to r2))]
-    (if (overlaps? r1 r2)
-      (->Range from to)
-      (->Range 0 0))))
-
-(comment
-  (range-overlap (->Range 0 10) (->Range 10 15))
-  (range-overlap (->Range 0 10) (->Range 5 10))
-  (range-overlap (->Range 0 10) (->Range 11 20))
-  (range-overlap (->Range 1 3) (->Range 2 5))
-  (range-overlap (->Range 11 20) (->Range 2 5)))
 
 (defn- reduce-range
   ([path]
