@@ -1,6 +1,7 @@
 (ns aoc.day-12
   (:require [aoc.utils :as u]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [clojure.math.combinatorics :as prof-b]))
 
 (def example (str/trim "
 ???.### 1,1,3
@@ -26,7 +27,7 @@
           (filter #(= "#" (first %)))
           (map count))))
 
-(defn ways-per-line [{:keys [template groups]}]
+(defn og-ways-per-line [{:keys [template groups]}]
   (loop [templates [template]
          candidates []
          steps      0]
@@ -43,205 +44,89 @@
                (into candidates ready)
                (inc steps))))))
 
-(defn a-faster-ways-per-line [{:keys [template groups]}]
-  (let [groups-as-template (str/join "." (map #(str/join "" (repeat % "#")) groups))
-        num-dots           (- (count template) (count groups-as-template))]
-    ;; dots can go at the beginning, end or where existing dots are
-    ;; only valid if existing dots and hashes line up
+(comment
+  (prof-b/partitions [:a :b :c])
+  (prof-b/subsets [:a :b :c])
 
-    ;; use as many dots as you need to get existing dots and hashes to line up
-    ;; then any ### ??? groups are "how many arrangements" problems
-    [template groups-as-template num-dots]))
+  (prof-b/permutations [:a :b :c])
 
-(defn is-possible? [half-baked groups]
-  (let [half-baked-groups (->> (str/split half-baked #"[^#?]+")
-                               (filter seq))
-        ;; first-group       (first half-baked-groups)
-        ]
+  (prof-b/combinations [:a :b :c] 2)
+  (prof-b/selections [:a :b :c] 2))
 
-    ;; false negative, second group might be first
-    ;; if first is only question marks
-    ;; (<= (count (filter #(= \# %) first-group))
-        ;; (first groups)
-    ;; (count first-group))
 
-    ;; false negative #?#? counts as one group
-    ;; but it could be 2
-    (>= (count half-baked-groups) (count groups))))
+
+(defn- increment-all [dot-config]
+  (mapv (fn [i dots] (update dots i inc)) (range) (repeat (count dot-config) (vec dot-config))))
+
+(comment (increment-all [0 1 0])
+         (vec (mapcat increment-all [[0 1 0]])))
+
+(defn- dot-config->template [groups dot-config]
+  (let [dots   (mapv (fn [num-dots] (repeat num-dots ".")) dot-config)
+        hashes (mapv (fn [group-size] (repeat group-size "#")) groups)]
+    (-> (interleave dots (conj hashes []))
+        flatten
+        str/join)))
 
 (comment
-  (str/split "..##?.?.#.##...." #"[^#?]+")
-  (is-possible? "..##?.?##.." [4, 1, 2]))
+  (interleave [[] ["."] ["."] []] [["#"] ["#"] ["#" "#" "#"] []])
+  (dot-config->template [1 1 3] [0 1 1 0])
+  (dot-config->template [1 1 3] [2 3 2 2]))
 
-(defn faster-ways-per-line [{:keys [template groups]}]
-  (let [max-steps 50000]
-    (loop [templates [template]
-           candidates []
-           steps      0
-           pruned     0]
-      (if (or (> steps max-steps) (empty? templates))
-
-        (if (> steps max-steps)
-          :failed
-          {:ways       (filter #(compatible-with-groups? % groups) candidates)
-           :num-steps  steps
-           :num-pruned pruned})
-
-        (let [t       (first templates)
-              next-ts (mapv #(str/replace-first t "?" %) ["." "#"])
-              grouped (group-by #(.contains % "?") next-ts)
-              [baking ready] [(get grouped true) (get grouped false)]
-              possible-baking (filter #(is-possible? % groups) baking)]
-
-          (recur (into (rest templates) possible-baking)
-                 (into candidates ready)
-                 (inc steps)
-                 (+ pruned (- (count baking) (count possible-baking)))))))))
-
-(defn- ways-to-add-group [[template min-idx] group-size]
-  ;; return all the ways a group could be inserted into the template
-  ;; at or after min-idx
-  (loop [rem-template     (drop min-idx (str/split template #""))
-         used-template    (vec (take min-idx (str/split template #"")))
-         filled-templates []]
-    (if (or (< (count rem-template) group-size) (empty? rem-template))
-
-      filled-templates
-
-      (let [can-insert-group      (and (every? #(#{"#" "?"} %) (take group-size rem-template))
-                                       (not= "#" (last used-template))
-                                       (or (= (count rem-template) group-size)
-                                           (#{"." "?"} (nth rem-template group-size))))
-            next-is-?             (and (> (count rem-template) group-size)
-                                       (= "?" (nth rem-template group-size)))
-            next-rem-template     (if can-insert-group
-                                    (drop (+ group-size (if next-is-? 1 0)) rem-template)
-                                    (drop 1 rem-template))
-            next-used-template    (if can-insert-group
-                                    (into used-template
-                                          (take (+ group-size (if next-is-? 1 0)) rem-template))
-                                    (into used-template (take 1 rem-template)))
-            the-min-idx           (+ (count used-template) group-size) ;; ?? + 1 => 3
-            next-filled-templates (if can-insert-group
-                                    (conj filled-templates
-                                          [(apply str
-                                                  (concat
-                                                   used-template
-                                                   (repeat group-size "#")
-                                                   [(if next-is-? "." "")]
-                                                   next-rem-template))
-                                           the-min-idx])
-                                    filled-templates)
-            next-filled-with-fork  (if can-insert-group
-                                     (into next-filled-templates
-                                           (ways-to-add-group [template (inc (count used-template))]
-                                                              group-size))
-                                     next-filled-templates)]
-        (recur next-rem-template
-               next-used-template
-               next-filled-with-fork)))))
+(defn get-ways-to-make-groups [template groups]
+  (let [template-length         (count template)
+        num-dots                (- template-length (u/sum groups))
+        ;; need at least one dot separating groups
+        num-moveable-dots       (- num-dots (dec (count groups)))
+        starting-dot-config     (as-> [0] $
+                                  (into $ (repeat (dec (count groups)) 1))
+                                  (conj $ 0))
+        ;; moveable dots go either before, between or after
+        ;; conceptually: [dot resevoir] g1 [dot reservoir] g2 ... gn
+        ;; dots: [0 1 1 0] equivalent to [[] g1 [.] g2 [.] g3 []]
+        dot-configs
+        (loop [rem-dots num-moveable-dots
+               dots     [starting-dot-config]]
+          (if (= 0 rem-dots)
+            dots
+            (let [next-configs (vec (mapcat increment-all dots))]
+              (recur (dec rem-dots) next-configs))))]
+    (mapv (partial dot-config->template groups) dot-configs)))
 
 (comment
-  (type (str (str/join (repeat 3 "#"))))
-  (ways-to-add-group ["??#?." 0] 2)
-  (ways-to-add-group ["?###?" 0] 3)
-  )
+  (get-ways-to-make-groups ".??.??.###" [1 1 3]))
 
-;; has a bug - approx 5x faster than brute force
-(defn smarter-ways-per-line [{:keys [template groups]}]
-  (loop [rem-groups       groups
-         partially-filled [[template 0]]]
-    ;; loop over all partially filled templates one group at a time
-    ;; adding all variations of that group going into the template
-    ;; and adding that to the partially filled list. If you can't
-    ;; add the group, kill that branch by not adding it to the list
-    ;; when all groups have been used, all "partially filled" will
-    ;; be valid combos. Count. Win.
-    (if (empty? rem-groups)
-      (count (set (map (fn [[t]] (str/replace t "?" ".")) partially-filled)))
-      (recur (rest rem-groups)
-             (mapcat #(ways-to-add-group % (first rem-groups)) partially-filled)))))
+(defn- way-matches-template [template way]
+  (assert (= (count template) (count way)) (str "Nope. T: " (count template) " W: " (count way)))
+  (let [valid-pair? (fn [[template-char way-char]]
+                      (if (= \? template-char) true (= way-char template-char)))]
+    (every? valid-pair? (map vector template way))))
 
-(comment
-  (smarter-ways-per-line {:template "??.??.###" :groups [1 1 3]})
-  (smarter-ways-per-line {:template "?###????????" :groups [3 2 1]})
-  )
+(comment (way-matches-template "?.?#" "..##")
+         (way-matches-template "?.?#" "#.##")
+         (way-matches-template "?.?#" "#.#."))
+
+(defn num-ways-per-line [{:keys [template groups]}]
+  (let [ways-to-make-groups (get-ways-to-make-groups template groups)
+        valid-ways          (filterv (partial way-matches-template template) ways-to-make-groups)]
+    (count valid-ways)))
 
 (defn pt1 [input]
   (let [parsed (parse-input input)
-        ways   (map ways-per-line parsed)
+        ways   (map og-ways-per-line parsed)
         ans    (map count ways)]
-    (u/sum ans)))
-
-(defn faster-pt1 [input]
-  (let [parsed (parse-input input)
-        ways   (map faster-ways-per-line parsed)
-        ans    (map #(count (:ways %)) ways)]
-    (u/sum ans)))
-
-(defn smarter-pt1 [input]
-  (let [parsed (parse-input input)
-        ans    (map smarter-ways-per-line parsed)]
     (u/sum ans)))
 
 (defn pt2 [input]
   (let [parsed (parse-input input)
-        ways   (map faster-ways-per-line parsed)
-        ;; ans    (map count ways)
-        ans ways]
+        ways   (map num-ways-per-line parsed)
+        ans    (u/sum ways)]
     ans))
 
 (comment
-  (pt2 example)
-
-  (["???.###"
-    "#.#.###" 0]
-
-   [".??..??...?##."
-    ".#...#....###." 5]
-
-   ["?#?#?#?#?#?#?#?"
-    ".#.###.#.######" 1]
-
-   ["????.#...#..."
-    "####.#.#" 5]
-
-   ["????.######..#####."
-    "#.######.#####" 5]
-
-   ["?###????????"
-    "###.##.#" 4])
-
-  (pt2 input)
+  (time (pt2 example))
+  (time (pt2 input))
   (time (pt1 example))
-  (time (faster-pt1 example))
-  (time (smarter-pt1 example))
-  (time (pt1 input))
-  (time (faster-pt1 input))
-  (time (smarter-pt1 input))
-  (pt1 input) ;; 7792
-
-  (ways-per-line {:template "???.###" :groups [1,1,3]})
-  (do
-    (println "--")
-    (ways-per-line {:template "???..#" :groups [1,1,3]}))
-
-  (do
-    (println "--")
-    (time
-     (ways-per-line
-      {:template (str/join "?" (repeat 5 "????.######..#####."))
-       :groups (flatten (repeat 5 [1,6,5]))})))
-
-  (str/replace-first ".#??#." "?" ".")
-  (split-with #(.contains % "?") ["asd" "asde?"])
-
-  (->> (str/split "..###.#..#" #"")
-       (partition-by #(= "." %))
-       (filter #(= "#" (first %)))
-       (map count))
-
-  (get (group-by #(.contains % "?") ["asde?"]) false)
-
+  (time (pt1 input)) ;; 7792
 ;
   )
