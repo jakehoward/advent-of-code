@@ -1,0 +1,13 @@
+graph {qnr -- {nvd}
+bvb -- {hfx,xhk}
+rhn -- {hfx,bvb,xhk}
+lsr -- {lhk}
+jqt -- {rhn,nvd,xhk}
+rzs -- {qnr,lsr,cmg,rsh}
+ntq -- {hfx,bvb,jqt,xhk}
+frs -- {lhk,qnr,lsr}
+nvd -- {lhk}
+xhk -- {hfx}
+cmg -- {lhk,qnr,bvb,nvd}
+pzl -- {hfx,lsr,nvd}
+rsh -- {lsr,frs,pzl}}

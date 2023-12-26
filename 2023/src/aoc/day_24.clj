@@ -16,7 +16,7 @@
   (let [[xyz vs]   (str/split line #"\s+@\s+")
         [x y z]    (->> (str/split xyz #",\s+") (map u/parse-int))
         [vx vy vz] (->> (str/split vs #",\s+") (map u/parse-int))]
-    {:points [x y z] :vs [vx vy vz]}))
+    {:start-xyz [x y z] :vs [vx vy vz]}))
 
 (defn parse-input [input]
   (mapv parse-line (str/split-lines input)))
@@ -27,7 +27,7 @@
     (assoc t :m grad)))
 
 (defn add-y-intersect [t]
-  (let [[x y]  (:points t)
+  (let [[x y]  (:start-xyz t)
         grad (:m t)]
     (assoc t :c (- y (* grad x)))))
 
@@ -45,7 +45,7 @@
 
 (defn- before? [t [ix iy]]
   (let [[vx vy] (:vs t)
-        [x  y]  (:points t)]
+        [x  y]  (:start-xyz t)]
     (cond (and (neg? vx) (neg? vy))
           (and (> x ix) (> y iy))
 
@@ -74,9 +74,36 @@
                            (filterv :intersection)
                            (filterv (partial in-box-and-in-future lower upper))
                            (mapv #(mapv double (:intersection %))))
-        ans (count intersections)
-        ]
+        ans (count intersections)]
     ans))
+
+
+(defn hs->pos-over-time [dim hail-stone]
+  (let [[x y z]    (:start-xyz hail-stone)
+        [vx vy vz] (:vs hail-stone)
+        p          (case dim :x x :y y :z z)
+        v          (case dim :x vx :y vy :z vz)]
+    {:start-position p :velocity v :pos-at-t (fn [t] (+ (* v t) p))}))
+
+(defn initial-guess [dim hail-stones]
+  ;; start at one hailstone and set velocity to
+  ;; hit the next one => in right ballpark to search
+  ;; todo: not sure we should be going pos -> neg
+  (let [sorted-start (->> hail-stones
+                          (mapv (partial hs->pos-over-time dim))
+                          (sort-by :start-position)
+                          first
+                          :start-position)
+        start        (-> sorted-start first :start-position)
+        next-hs      (-> sorted-start second)
+        ;; pick a time at which it should hit
+        ;; then ((:pos-at-t other-hs) t) = start + velocity * t
+        ;; so velocity = (((:pos-at-t other-hs) t) - start) / t
+
+        ;; what's a good t for second hit?
+        velocity     :todo]
+    {:start start}))
+
 
 (defn pt2 [input]
   (let [parsed (parse-input input)
@@ -84,6 +111,7 @@
     ans))
 
 (comment
+  (sort-by :x [{:x 10}{:x 8}{:x 5}{:x 25}])
   (pt1 example 7 27)
   (pt1 input 200000000000000 400000000000000) ;; 16779
   (pt2 example)
