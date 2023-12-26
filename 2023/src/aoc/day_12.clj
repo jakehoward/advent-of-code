@@ -28,23 +28,6 @@
           (filter #(= "#" (first %)))
           (map count))))
 
-(defn og-ways-per-line [{:keys [template groups]}]
-  (loop [templates [template]
-         candidates []
-         steps      0]
-    (if (or (> steps 5000000) (empty? templates))
-
-      (if (> steps 5000000) :failed (filter #(compatible-with-groups? % groups) candidates))
-
-      (let [t       (first templates)
-            next-ts (mapv #(str/replace-first t "?" %) ["." "#"])
-            grouped (group-by #(.contains % "?") next-ts)
-            [baking ready] [(get grouped true) (get grouped false)]]
-
-        (recur (into (rest templates) baking)
-               (into candidates ready)
-               (inc steps))))))
-
 (comment
   (prof-b/partitions [:a :b :c])
   (prof-b/subsets [:a :b :c])
@@ -85,6 +68,11 @@
         ;; moveable dots go either before, between or after
         ;; conceptually: [dot resevoir] g1 [dot reservoir] g2 ... gn
         ;; dots: [0 1 1 0] equivalent to [[] g1 [.] g2 [.] g3 []]
+        ;; num ways:
+        ;;                           g g g
+        ;; | is a group separator   ..|.|.. , num separators = num-groups - 1
+        ;; . is a moveable dot (there are dots which can't be moved,
+        ;;                      imagine attached to the right of group)
         dot-configs
         (loop [rem-dots num-moveable-dots
                dots     [starting-dot-config]]
@@ -107,7 +95,7 @@
          (way-matches-template? "?.?#" "#.##")
          (way-matches-template? "?.?#" "#.#."))
 
-(defn num-ways-per-line [{:keys [template groups] :as line}]
+(defn old-num-ways-per-line [{:keys [template groups] :as line}]
   (let [start               (System/nanoTime)
         ways-to-make-groups (get-ways-to-make-groups template groups)
         valid-ways          (filterv (partial way-matches-template? template) ways-to-make-groups)
@@ -123,39 +111,106 @@
 
     num-valid-ways))
 
-(comment (num-ways-per-line {:template "??.??.###" :groups [1 1 3]})
-         (num-ways-per-line {:template ".??..??...?##." :groups [1 1 3]})
-         (time (num-ways-per-line {:template "??#????#..?.?.?", :groups [3 2 1 1 1]}))
-         (time (num-ways-per-line {:template "??#??..#??.", :groups [3 1]}))
-         (time (num-ways-per-line {:template ".?????.??.???.?#??", :groups [1 1 3]}))
+(comment (old-num-ways-per-line {:template "??.??.###" :groups [1 1 3]})
+         (old-num-ways-per-line {:template ".??..??...?##." :groups [1 1 3]})
+         (time (old-num-ways-per-line {:template "??#????#..?.?.?", :groups [3 2 1 1 1]}))
+         (time (old-num-ways-per-line {:template "??#??..#??.", :groups [3 1]}))
+         (time (old-num-ways-per-line {:template ".?????.??.???.?#??", :groups [1 1 3]}))
          )
 
 ;; ways   (map num-ways-per-line (take 10 (drop 275 parsed)))
 (defn pt1 [input]
   (println "--- Pt1 ---")
   (let [parsed (parse-input input)
-        ways   (map num-ways-per-line parsed)
+        ways   (mapv old-num-ways-per-line parsed)
         ;; ways   (map num-ways-per-line (take 700 parsed))
         ans    (u/sum ways)]
     ans))
 
-;; (defn pt2 [input]
-  ;; (let [parsed (parse-input input)
-        ;; ways   (map num-ways-per-line (take 4 parsed))
-        ;; ans    (u/sum (map :num-valid-ways ways))]
-    ;; ans))
+
+(defn repeat-data [num-repeats line]
+  (-> line
+      (update :template (fn [template] (str/join "?" (repeat num-repeats template))))
+      (update :groups (fn [groups] (->> groups (repeat num-repeats) flatten vec)))))
+
+
+;; The max number of ways to make the groups is num-question-marks choose num-moveable-dots
+;; but only some of them will be valid groups?
+
+(defn- template->actual [template qm-dot-idxs]
+  (let [qm-dot-idxs-set (set qm-dot-idxs)
+
+        ans
+        (loop [rem-template     (vec template)
+               normalised-?-idx 0
+               actual           []]
+          (if (empty? rem-template)
+            (str/join actual)
+            (let [t (first rem-template)
+                  a (if (= \? t)
+                      (if (contains? qm-dot-idxs-set normalised-?-idx)
+                        \.
+                        \#)
+                      t)]
+              (recur (rest rem-template)
+                     (if (= \? t) (inc normalised-?-idx) normalised-?-idx)
+                     (conj actual a)))))]
+    (str/join ans)))
+
+(comment (template->actual "??.??.###" [2 3]))
+
+(defn- valid-arrangement? [template groups arrangement]
+  (and (way-matches-template? template arrangement)
+       (= (->> (str/split arrangement #"\.+")
+               (filterv seq)
+               (mapv count))
+          groups)))
+
+(defn num-ways-per-line [{:keys [template groups]}]
+  (let [template-length       (count template)
+        num-question-marks    (count (filterv #(= \? %) template))
+        num-template-dots     (count (filterv #(= \. %) template))
+        num-required-dots     (- template-length (u/sum groups))
+        num-ambiguous-dots    (- num-required-dots num-template-dots)
+        ;; if template has four ? => ??.??.### 1,1,3
+        ;; num ambiguous dots = 2
+        ;; combos is which to make a dot assuming zero indexed list of ? ????
+        ;; => ((0 1) (0 2) (0 3) (1 2) (1 3) (2 3))
+        qm-dot-idx-combos     (prof-b/combinations (range num-question-marks) num-ambiguous-dots)
+
+        possible-arrangements (->> qm-dot-idx-combos
+                                   (mapv (partial template->actual template)))
+        valid    (filterv (partial valid-arrangement? template groups) possible-arrangements)]
+
+    (count valid)))
+
+(comment (prof-b/combinations (range 4) 2))
+
+(defn pt2 [input]
+  (println "--- Pt2 ---")
+  (let [parsed      (parse-input input)
+        ;; num-repeats 1
+        ;; bigger-data (mapv (partial repeat-data num-repeats) parsed)
+        ways        (map num-ways-per-line parsed)
+        ans         (u/sum ways)]
+    ans))
 
 (comment
+  (time (pt2 example))
+  (time (pt2 input))
   (time (pt1 example))
   (time (pt1 input))
-  ;; (time (pt2 example))
-  ;; (time (pt2 input))
   ;; pt1 ans 7792
 
   ;; Observations:
   ;; - Techniques that just use the template or just use the groups to
   ;;   enumerate options have pathalogical data that kill their performance
   ;;   => need a solution that takes info of both into account
+
+
+  ;; Pathological cases
+  ;; ?????...  1,1
+  ;; ?#?#?#    1,1,1
 
 
   ;;
@@ -187,5 +242,14 @@
    :line {:template "??#??.???..?.?.???", :groups [2 2]}}
   {:time-ms 3986.236152,
    :line {:template "...??.?.?#.?????.", :groups [1 1]}}
+
+      ;; (println "--")
+    ;; (pprint {:template template :groups groups :num-question-marks num-question-marks
+             ;; :qm-dot-idx-combos qm-dot-idx-combos
+             ;; :possible-arrangements possible-arrangements
+             ;; })
+    ;; (println :num-template-dots num-template-dots :num-required-dots num-required-dots :num-ambiguous-dots num-ambiguous-dots)
+    ;; (println :valid (count valid))
+
 ;
   )
