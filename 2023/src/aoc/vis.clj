@@ -49,10 +49,10 @@
 
               :else (throw (Exception. (str "Unsupported shape: " shape))))]
     (if text
-      [:g {} shape [:text {:x (dec (+ half-cell-size x))
+      [:g {} shape [:text {:x (- (+ half-cell-size x) 2)
                            :y (+ 1 half-cell-size y)
                            :font-family "Verdana"
-                           :font-size 4
+                           :font-size 2
                            :fill "black"} text]]
       shape)))
 

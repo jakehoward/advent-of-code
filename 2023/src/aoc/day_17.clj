@@ -53,16 +53,24 @@
   (+ newcost
      (estimate-cost step-cost-est size y x)))
 
+(comment
+  (-> (sorted-set [0 0 [0 0]])
+      (conj [0 1 [1 1]])
+      (conj [9 -2 [9 9]])
+      (conj [1 -1 [1 1]])
+      (conj [9 -3 [9 9]])))
+
 (defn a-star [start-yx step-est cell-costs cost-to-move]
   (let [size (count cell-costs)
         progression (atom [])]
     (loop [steps 0
            routes (vec (repeat size (vec (repeat size nil))))
-           work-todo (sorted-set [0 start-yx])]
+           ;;                    [cost LIFO-order yx]
+           work-todo (sorted-set [0 0 start-yx])]
       (swap! progression (fn [c] (conj c routes)))
-      (if (empty? work-todo)
+      (if (or (empty? work-todo) (not (nil? (peek (peek routes)))))
         {:route (peek (peek routes)) :steps steps :progression @progression}
-        (let [[_ yx :as work-item] (first work-todo)
+        (let [[_ _ yx :as work-item] (first work-todo)
               rest-work-todo (disj work-todo work-item)
               nbr-yxs (neighbours size yx)
               cheapest-nbr (min-by :cost (keep #(get-in routes %) nbr-yxs))
@@ -73,7 +81,12 @@
             (recur (inc steps)
                    (assoc-in routes yx {:cost newcost :yxs (conj (:yxs cheapest-nbr []) yx)})
                    (into rest-work-todo
-                         (map (fn [w] [(total-cost newcost step-est size w) w]) nbr-yxs)))))))))
+                         (map (fn [w] [(total-cost newcost step-est size w)
+                                       ;; ensure LIFO behaviour when cost is equal
+                                       (if (seq rest-work-todo)
+                                         (->> rest-work-todo (map second) (apply min) dec)
+                                         0)
+                                       w]) nbr-yxs)))))))))
 
 
 (defn pt1 [input]
@@ -91,10 +104,16 @@
   (pt1 input)
   (pt2 example)
   (pt2 input)
-  (let [matrix                (parse-input example)
-        ;; {:keys [progression]} (a-star [0 0] 1 matrix 1)
-        sz 15
-        matrix (vec (repeatedly sz #(vec (repeatedly sz (fn [] (rand-int 10))))))
+
+  (let [matrix [[1  99 99 99 99 99 99 99 99]
+                [1  66 66 66 66 66 66 66 66]
+                [1  1  1  1  1  1  1  1  1 ]
+                [66 66 66 66 66 66 66 66 1 ]
+                [99 99 99 99 99 99 99 99 1 ]
+                [1  1  1  1  1  1  1  1  1 ]
+                [1  66 66 66 66 66 66 66 66]
+                [1  99 99 99 99 99 99 99 99]
+                [1  1  1  1  1  1  1  1  1 ]]
         {:keys [progression route]} (a-star [0 0] 1 matrix 1)
         path-yxs-set (set (:yxs route))
         grids-to-vis (->> progression
@@ -106,8 +125,32 @@
     (->> (vis/grids->html grids-to-vis
                           (fn [m yx]
                             {:shape :rect
-                             ;; :text (or (str (get-in m yx)) "-")
                              :text (or (str (get-in matrix yx)) "-")
+                             :color (if (get-in m yx)
+                                      (if (contains? path-yxs-set yx)
+                                        "green"
+                                        (nth vis/ten-step-palette (scale-cost (get-in m yx))))
+                                      "darkgray")}))
+         (spit "vis.html")))
+
+  (def random-matrix (vec (repeatedly 15 #(vec (repeatedly 15 (fn [] (rand-int 10)))))))
+
+  (let [matrix                (parse-input example)
+        ;; {:keys [progression]} (a-star [0 0] 1 matrix 1)
+        matrix random-matrix
+        {:keys [progression route]} (a-star [0 0] 1 matrix 1)
+        path-yxs-set (set (:yxs route))
+        grids-to-vis (->> progression
+                          (mapv
+                           (fn [grid]
+                             (mapv (fn [row] (mapv (fn [i] (:cost i)) row)) grid))))
+        max-cost    (apply max (filter identity (flatten grids-to-vis)))
+        scale-cost (fn [cost] (int (* 9 (/ cost max-cost))))]
+    (->> (vis/grids->html grids-to-vis
+                          (fn [m yx]
+                            {:shape :rect
+                             :text (or (str (get-in m yx)) "-")
+                             ;; :text (or (str (get-in matrix yx)) "-")
                              :color (if (get-in m yx)
                                       (if (contains? path-yxs-set yx)
                                         "green"
