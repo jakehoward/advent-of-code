@@ -1,5 +1,6 @@
 (ns aoc.day-17
   (:require [aoc.utils :as u]
+            [aoc.vis :as vis]
             [clojure.string :as str]))
 
 (def example (str/trim "
@@ -29,179 +30,55 @@
                 min))
             coll)))
 
-(defn estimate-cost [step-cost-est matrix y x]
-  (* step-cost-est
-     (- (+ (u/y-size matrix) (u/x-size matrix)) y x 2)))
+(defn neighbours [size yx]
+  (let [deltas [[-1 0] [1 0] [0 -1] [0 1]]]
+    (->> deltas
+         (map #(vec (map + yx %)))
+         (filter (fn [new-yx] (every? #(< -1 % size) new-yx))))))
 
+(defn joy-heuristic [step-cost-est size y x]
+  (* step-cost-est
+     (- (+ size size) y x 2)))
+
+;; estimate-cost => h(...) in the literature (presumably "heuristic")
+(def estimate-cost joy-heuristic)
+
+;; path-cost => g(...) in the literature (presumably "god, it's annoying when ppl use symbols")
 (defn path-cost [node-cost cheapest-nbr cost-to-move]
-  (+ node-cost cost-to-move (* cost-to-move (count (:yxs cheapest-nbr [])))
+  (+ node-cost cost-to-move (* cost-to-move (count (:xys cheapest-nbr [])))
      (or (:cost cheapest-nbr) 0)))
 
-(defn total-cost [newcost step-cost-est matrix [y x]]
+;; total-cost => f(...) in the literature
+(defn total-cost [newcost step-cost-est size [y x]]
   (+ newcost
-     (estimate-cost step-cost-est matrix y x)))
-
-(defn get-run-length [direction yx routes]
-  (let [nbr-fn (case direction :right u/left :left u/right :down u/above :up u/below)
-        path   (-> (or (get-in routes (into (nbr-fn yx) [:yxs])) [])
-                   (into [yx]))
-        run-fn (case direction
-                 :right (fn [[[ay ax] [by bx]]] (and (= ay by)
-                                                     (= 1 (- ax bx))))
-                 :left  (fn [[[ay ax] [by bx]]] (and (= ay by)
-                                                     (= 1 (- bx ax))))
-                 :down  (fn [[[ay ax] [by bx]]] (and (= ax bx)
-                                                     (= 1 (- ay by))))
-                 :up    (fn [[[ay ax] [by bx]]] (and (= ax bx)
-                                                     (= 1 (- by ay)))))
-        run-length (->> path
-                        reverse
-                        (partition 2 1)
-                        (take-while run-fn)
-                        (map first)
-                        count
-                        (+ 1))
-        ;; _ (println "path:" path "runl:" run-length)
-        ]
-    (if (= 0 (count path))
-      0
-      run-length)))
-
-(defn get-nbr-yxs [y-size x-size yx direction routes]
-  ;; if 3 in same direction in a row, have to do 90 degree turn
-  ;; otherwise straight on, or 90 degree turn
-  (let [straight-ahead (case direction
-                         :down  {:yx (u/below yx) :dir :down}
-                         :up    {:yx (u/above yx) :dir :up}
-                         :left  {:yx (u/left yx)  :dir :left}
-                         :right {:yx (u/right yx) :dir :right})
-        num-in-row     (get-run-length direction yx routes)
-        ;; _ (println "num in row:" num-in-row)
-        lr-90s         (case direction
-                         :down  [{:yx (u/left yx) :dir :left}  {:yx (u/right yx) :dir :right}]
-                         :up    [{:yx (u/right yx) :dir :right} {:yx (u/left yx) :dir :left}]
-                         :left  [{:yx (u/above yx) :dir :up} {:yx (u/below yx) :dir :down}]
-                         :right [{:yx (u/below yx) :dir :down} {:yx (u/above yx) :dir :up}])
-        ;; todo: these nbrs aren't actually possible
-        ;;       as there may have been no way to get
-        ;;       to this point in this direction (or
-        ;;       even if there were, it wasn't the route)
-        ;;       => maybe the route has to have coords and
-        ;;          direciton rather than just yx
-        poss-prev-nbrs (case direction
-                         :down  [{:yx (u/above yx) :dir :down}
-                                 {:yx (u/above yx) :dir :right}
-                                 {:yx (u/above yx) :dir :left}]
-                         :up    [{:yx (u/below yx) :dir :up}
-                                 {:yx (u/below yx) :dir :right}
-                                 {:yx (u/below yx) :dir :left}]
-                         :left  [{:yx (u/right yx) :dir :left}
-                                 {:yx (u/right yx) :dir :up}
-                                 {:yx (u/right yx) :dir :down}]
-                         :right [{:yx (u/left yx) :dir :right}
-                                 {:yx (u/left yx) :dir :up}
-                                 {:yx (u/left yx) :dir :down}])
-        prev-nbrs      (->> poss-prev-nbrs
-                            (filter (fn [{:keys [yx]}] (seq (get-in routes yx))))
-                            vec)
-        in-bounds?     (fn [[y x]] (and (< -1 y y-size) (< -1 x x-size)))
-
-        all-nbrs (->> (into (if (<= num-in-row 3) [straight-ahead] [])
-                            (concat lr-90s prev-nbrs))
-                      (filter (fn [{:keys [yx]}] (in-bounds? yx)))
-                      vec)
-        ]
-    all-nbrs))
-
-;; (comment (pt1 example))
-
-(comment
-  (get-nbr-yxs 3 3 [0 0] :right [[nil nil nil] [nil nil nil]])
-  (get-nbr-yxs 4 4 [0 2] :right [[{:cost 1 :yxs [[0 0]]}
-                                  {:cost 1 :yxs [[0 0] [0 1]]}
-                                  {:cost 1 :yxs [[0 0] [0 1] [0 2]]}
-                                   nil]
-                                 [nil nil nil]])
-  (get-nbr-yxs 4 4 [0 1] :left [[nil
-                                 nil
-                                 {:cost 1 :yxs [[0 3] [0 2]]}
-                                 {:cost 1 :yxs [[0 3]]}]
-                                [nil nil nil]])
-  ;
-  )
-
-(defn work-item-sorter [w1 w2]
-  (let [c (compare (first w1) (first w2))]
-    (if (not= c 0)
-      c
-      (compare (:yx w1) (:yx w2)))))
-
-
-(comment
-  (-> (sorted-set-by work-item-sorter [0 {:yx [0 0] :dir :up}])
-      (conj [3 {:yx [1 1] :dir :up}])
-      (conj [1 {:yx [1 1] :dir :up}])))
+     (estimate-cost step-cost-est size y x)))
 
 (defn a-star [start-yx step-est cell-costs cost-to-move]
-  (println "-- Starting A* --")
-  (let [y-size (u/y-size cell-costs)
-        x-size (u/x-size cell-costs)]
+  (let [size (count cell-costs)
+        progression (atom [])]
     (loop [steps 0
-           routes (vec (repeat y-size (vec (repeat x-size nil))))
-           work-todo (sorted-set-by work-item-sorter [0 {:yx start-yx :dir :right}])]
-      (if (or (> steps 50000) (empty? work-todo))
-        {:route (peek (peek routes))
-         :route-len (count (:yxs (peek (peek routes))))
-         :num-steps steps} ;; assumes ends at bottom right (the peek peek)
-
-        (let [[_ item :as work-item] (first work-todo)
-              {:keys [yx dir]}     item
-              rest-work-todo       (disj work-todo work-item)
-              ;; _ (println "yx:" yx "d:" dir "rs:" routes)
-              nbr-dir-yxs          (get-nbr-yxs y-size x-size yx dir routes)
-              cheapest-nbr         (min-by :cost (keep #(get-in routes (:yx %)) nbr-dir-yxs))
-              newcost              (path-cost (get-in cell-costs yx) cheapest-nbr cost-to-move)
-              oldcost              (:cost (get-in routes yx))
-              ;; _ (println "---- ITER ----")
-              ;; _ (println "wi:" work-item)
-              ;; _ (println "wis:" work-todo)
-              ;; _ (println "nyxs:" nbr-dir-yxs)
-              ;; _ (println "cn:" cheapest-nbr )
-              ;; _ (println "rs:" (keep #(get-in routes (:yx %)) nbr-dir-yxs))
-              ;; _ (println "mbc:" (min-by :cost (keep #(get-in routes (:yx %)) nbr-dir-yxs)))
-              ;; _ (println "nc:" newcost "oc:" oldcost)
-              ;; _ (println  "rrs:" routes)
-              ]
+           routes (vec (repeat size (vec (repeat size nil))))
+           work-todo (sorted-set [0 start-yx])]
+      (swap! progression (fn [c] (conj c routes)))
+      (if (empty? work-todo)
+        {:route (peek (peek routes)) :steps steps :progression @progression}
+        (let [[_ yx :as work-item] (first work-todo)
+              rest-work-todo (disj work-todo work-item)
+              nbr-yxs (neighbours size yx)
+              cheapest-nbr (min-by :cost (keep #(get-in routes %) nbr-yxs))
+              newcost (path-cost (get-in cell-costs yx) cheapest-nbr cost-to-move)
+              oldcost (:cost (get-in routes yx))]
           (if (and oldcost (>= newcost oldcost))
             (recur (inc steps) routes rest-work-todo)
             (recur (inc steps)
                    (assoc-in routes yx {:cost newcost :yxs (conj (:yxs cheapest-nbr []) yx)})
                    (into rest-work-todo
-                         (map (fn [w] [(total-cost newcost step-est cell-costs (:yx w)) w]) nbr-dir-yxs)))))))))
+                         (map (fn [w] [(total-cost newcost step-est size w) w]) nbr-yxs)))))))))
 
 
 (defn pt1 [input]
-  (let [matrix    (parse-input input)
-        path-res  (a-star [0 0] 1 matrix 1)
-        route     (get-in path-res [:route :yxs])
-        route-set (set route)
-        heat-cost (->> (drop 1 route)
-                       (map (fn [yx] (get-in matrix yx)))
-                       u/sum)
-        viz      (->> (for [y (range (count matrix))
-                            x (range (count (first matrix)))]
-                        (cond (contains? route-set [y x])
-                             "x"
-                             :else
-                             "."))
-                      (partition (count (first matrix)))
-                      (map vec)
-                      vec)
-        ans         path-res
-        ;; ans      route-set
-        ;; ans      heat-cost
-        ;; ans      viz
-        ]
+  (let [matrix  (parse-input input)
+        ans     (a-star [0 0] 1 matrix 1)]
     ans))
 
 (defn pt2 [input]
@@ -210,9 +87,38 @@
     ans))
 
 (comment
-  (pt1 example)
+  (count (:progression (pt1 example)))
   (pt1 input)
   (pt2 example)
   (pt2 input)
+  (let [matrix                (parse-input example)
+        ;; {:keys [progression]} (a-star [0 0] 1 matrix 1)
+        sz 15
+        matrix (vec (repeatedly sz #(vec (repeatedly sz (fn [] (rand-int 10))))))
+        {:keys [progression route]} (a-star [0 0] 1 matrix 1)
+        path-yxs-set (set (:yxs route))
+        grids-to-vis (->> progression
+                          (mapv
+                           (fn [grid]
+                             (mapv (fn [row] (mapv (fn [i] (:cost i)) row)) grid))))
+        max-cost    (apply max (filter identity (flatten grids-to-vis)))
+        scale-cost (fn [cost] (int (* 9 (/ cost max-cost))))]
+    (->> (vis/grids->html grids-to-vis
+                          (fn [m yx]
+                            {:shape :rect
+                             ;; :text (or (str (get-in m yx)) "-")
+                             :text (or (str (get-in matrix yx)) "-")
+                             :color (if (get-in m yx)
+                                      (if (contains? path-yxs-set yx)
+                                        "green"
+                                        (nth vis/ten-step-palette (scale-cost (get-in m yx))))
+                                      "darkgray")}))
+         (spit "vis.html")))
+
+((fn [cost] (int (* 9 (/ cost 109)))) 109)
+(->> (vis/grids->html [(parse-input example)]
+                        (fn [m yx]
+                          {:shape :rect :color (nth vis/ten-step-palette (get-in m yx))}))
+       (spit "vis.html"))
 ;
 )

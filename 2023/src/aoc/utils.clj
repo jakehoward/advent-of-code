@@ -165,3 +165,4 @@
 ;; debug
 ;; =====
 (defn spy [x] (println "spy:" x) x)
+(defn sample-spy [p x] (when (< (rand) p) (println "spy:" x)) x)

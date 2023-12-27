@@ -3,23 +3,34 @@
             [clojure.string :as str]
             [clojure.java.io :as io]))
 
-(defn viz-js [svgs]
+(def ten-step-palette ["#2500b8"
+                       "#6700a3"
+                       "#86008d"
+                       "#9a0076"
+                       "#a6005f"
+                       "#ad004a"
+                       "#af0037"
+                       "#ad0025"
+                       "#a80014"
+                       "#a10000"])
+
+(defn- viz-js [svgs]
   (-> "viz.js"
       io/resource
       slurp
       (str/replace "{{svgs}}" (str/join "," (map #(str "`" % "`") svgs)))))
 
-(def largest-dimension-px 1000)
-(def cell-size 10)
-(def half-cell-size (long (/ cell-size 2)))
+(def ^:private largest-dimension-px 600)
+(def ^:private cell-size 10)
+(def ^:private half-cell-size (long (/ cell-size 2)))
 
-(defn get-x-size [grid]
+(defn- get-x-size [grid]
   (count (first grid)))
 
-(defn get-y-size [grid]
+(defn- get-y-size [grid]
   (count grid))
 
-(defn calc-width-height [grid]
+(defn- calc-width-height [grid]
   (let [[x-size y-size] ((juxt get-x-size get-y-size) grid)
         [width height]  (if (> x-size y-size)
                           [largest-dimension-px
@@ -28,16 +39,24 @@
                            largest-dimension-px])]
     {:width (long (Math/ceil width)) :height (long (Math/ceil height))}))
 
-(defn cell->svg-elem [{:keys [color shape]} x y]
-  (cond (= :rect shape)
-        [:rect {:x x :y y :width cell-size :height cell-size :fill color}]
+(defn- cell->svg-elem [{:keys [color shape text]} x y]
+  (let [shape
+        (cond (= :rect shape)
+              [:rect {:x x :y y :width cell-size :height cell-size :fill color}]
 
-        (= :circle shape)
-        [:circle {:cx (+ half-cell-size x) :cy (+ half-cell-size y) :r half-cell-size :fill color}]
+              (= :circle shape)
+              [:circle {:cx (+ half-cell-size x) :cy (+ half-cell-size y) :r half-cell-size :fill color}]
 
-        :else (throw (Exception. (str "Unsupported shape: " shape)))))
+              :else (throw (Exception. (str "Unsupported shape: " shape))))]
+    (if text
+      [:g {} shape [:text {:x (dec (+ half-cell-size x))
+                           :y (+ 1 half-cell-size y)
+                           :font-family "Verdana"
+                           :font-size 4
+                           :fill "black"} text]]
+      shape)))
 
-(defn grid->svg [grid cell-fn]
+(defn- grid->svg [grid cell-fn]
   (let [{:keys [width height]} (calc-width-height grid)
         [viewport-x viewport-y] [(* cell-size (get-x-size grid)) (* cell-size (get-y-size grid))]
         root [:svg
