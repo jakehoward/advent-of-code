@@ -31,7 +31,7 @@
 3214
 4322"))
 
-;; Attempt to make that that requires re-visiting node to get cheapest path
+;; Attempt to make example that requires re-visiting node to get cheapest path
 ;; - Not 100% convinced, but it seems it might not be possible to force a loop.
 ;;   Would it be (easier?) with larger numbers or a different path max run-length
 (def pathological-example (str/trim "
@@ -156,25 +156,21 @@
      (best-case-cost-to-end size y x)))
 
 (defn get-neighbours [all-paths path]
-  ;; get the neighbours from the routes, not the yxs
-  ;; Routes Vec, of Vec of Vec of routes (y, x, run-length/direction options)
-  ;; Valid nbr is one where yx is an extension of an existing route
-  ;; that does not move more than 3 steps in a single direction
+  ;; interestingly in the next step of the algorithm, where
+  ;; we explore the neighbours we create here, they won't
+  ;; necessarily consider path a nbr.
 
-  ;; Get up/down/left/right yx from point
-  ;; If a neighbour only has a path such that yx would be the 4th in a given direction
-  ;; then it's not a valid nbr
-
-  ;; If there is no route for a given yx return it with dir and num-in-row of 1
-
-  ;; Special case for yx = start ([0 0]) ?
-  )
+  (let [all-poss-nbr-yxs (u/get-neighbours-coords-yx (last (:yxs path)) {:diagonals false})
+        valid-existing   (->> all-poss-nbr-yxs
+                              (keep #(get-in all-paths %))
+                              (filterv (fn [n] (or (not= (:direction n) (:direction path))
+                                                   (< 3 (:run path)))) ))]))
 
 ;; Route: cost, direction, num-in-row, yxs
 
-(defn- same-direction-and-run-len? [path-a path-b]
-  (and (= (:direction path-a) (:direction path-b))
-       (= (:run path-a) (:run path-b))))
+;; (defn- same-direction-and-run-len? [path-a path-b]
+  ;; (and (= (:direction path-a) (:direction path-b))
+       ;; (= (:run path-a) (:run path-b))))
 
 (defn a-star [start-yx cell-costs]
   (let [size       (count cell-costs)
@@ -205,28 +201,23 @@
               ;;       Choosing this cheapest nbr basically shuts down future options
               ;;       which may be cheaper. But without choosing one like this, there's
               ;;       no point to this algorithm, it might as well be brute force...
-              cheapest-nbr    (min-by :cost nbrs)
+              cheapest-nbr    (min-by :cost (filter :cost nbrs))
               newcost         (path-cost (get-in cell-costs yx) (:cost cheapest-nbr 0))
               oldcost         (:cost path-to-explore)
               new-run         (if (= (:direction cheapest-nbr) (:direction path-to-explore))
                                 (inc (:run path-to-explore))
                                 1)]
-          ;; TODO: is this logic still valid? Yes: there's a cheaper way to get to this exact point
-          ;;       ONLY true if we consider this point, direction and run length
+          ;; TODO: is this logic still valid? Maybe only if we consider this point,
+          ;;       direction and run length?
           (if (and oldcost (>= newcost oldcost))
             (recur (inc steps) all-paths rest-work-todo)
             (recur (inc steps)
                    ;; TODO: maintain multiple routes
                    (assoc-in all-paths yx
-                             (as-> (get-in all-paths yx) $
-                               ;; how much work is it saving if we still maintain all
-                               ;; other run lengths and directions? Or is it about ensuring
-                               ;; we maintain valid options?
-                               (filterv #(not (same-direction-and-run-len? path-to-explore %)) $)
-                               (conj $ {:cost      newcost
-                                        :direction (:direction path-to-explore)
-                                        :run       new-run
-                                        :yxs       (conj (:yxs cheapest-nbr []) yx)})))
+                             {:cost      newcost
+                              :direction (:direction path-to-explore)
+                              :run       new-run
+                              :yxs       (conj (:yxs cheapest-nbr []) yx)})
                    (into rest-work-todo
                          (map (fn [nbr]
                                 [(best-total-cost newcost size (-> nbr :yxs last))
