@@ -109,34 +109,41 @@
 (def up    [-1 0])
 (def down  [1 0])
 
-(defn make-vertex [yx direction run]
+(defn make-vertex [yx direction run pre-run]
   (assert (and (vector? yx) (= 2 (count yx))) (str "Invalid yx:" yx))
   (assert (#{left right up down} direction)   (str "Invalid direction:" direction))
   (assert (#{0 1 2 3} run)                    (str "Invalid run:" run))
-  {:yx yx :direction direction :run run})
+  (assert (or (nil? pre-run) (and (vector? pre-run) (= 2 (count pre-run)))) (str "Invalid pre-run:" pre-run))
+  {:yx yx :direction direction :run run :pre-run pre-run})
 
 (comment
-  (->> (map vector (repeatedly #(rand-int 10)) (take 4 (repeatedly #(make-vertex [0 1] [0 -1] 2))))
+  (->> (map vector (repeatedly #(rand-int 10)) (take 4 (repeatedly #(make-vertex [0 1] [0 -1] 2 [0 1]))))
        (reduce conj (sorted-set-by first-comp))))
 
 (defn- get-neighbours [cell-costs path-yxs yx]
   (assert (= (last path-yxs) yx) (str "Incorrect path for yx: " yx " path: " path-yxs))
   (let [candidate-nbr-yxs (u/get-nbr-yxs cell-costs yx {:diagonals false})
         prev              (last (butlast path-yxs))
+        pre-run           (fn [[ny nx]] (->> (conj path-yxs [ny nx])
+                                            reverse
+                                            (take-while #(or (= (first %) ny) (= (second %) nx)))
+                                            last))
         nbr-yxs           (->> candidate-nbr-yxs
                                (filterv (fn [nyx] (not= prev nyx)))
                                (filterv (fn [nyx] (<= (get-run-length (conj path-yxs nyx)) 3))))]
-    (->>  nbr-yxs
-          (mapv (fn [nyx]
-                  (make-vertex nyx (mapv - nyx yx) (get-run-length (conj path-yxs nyx))))))))
+    (->> nbr-yxs
+         (mapv (fn [nyx]
+                 (make-vertex nyx
+                              (mapv - nyx yx)
+                              (get-run-length (conj path-yxs nyx))
+                              (pre-run nyx)))))))
 (comment (get-neighbours (parse-input small-example)
                          [[0 0] [0 1] [0 2] [1 2]]
                          [1 2]))
 
 (defn- shortest-path [start-yx end-yx cell-costs]
-  (let [max-steps         500000
-        start-vertex      (make-vertex start-yx right 0)
-        start-path        [start-yx]]
+  (let [max-steps         1000000
+        start-vertex      (make-vertex start-yx right 0 nil)]
 
     (loop [vertex->state {start-vertex {:cost 0 :predecessor nil}}
            work-items    (sorted-set-by first-comp [0 start-vertex])
@@ -203,6 +210,8 @@
   (time (pt1 example))
 
   (time (pt1 input))
+  {:cost 640, :predecessor {:yx [140 139], :direction [0 1], :run 1, :pre-run [140 138]}}
+  ;; {:cost 640, :predecessor {:yx [140 139], :direction [0 1], :run 1, :pre-run [139 138]}}
 
   ;; 640 (too high)
   ;; 677 (too high)
