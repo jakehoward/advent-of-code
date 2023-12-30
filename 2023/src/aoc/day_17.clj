@@ -110,25 +110,25 @@
 (def down  [1 0])
 
 (defn make-vertex [yx direction run]
-  ;; (assert (and (vector? yx) (= 2 (count yx))) (str "Invalid yx:" yx))
-  ;; (assert (#{left right up down} direction)   (str "Invalid direction:" direction))
-  ;; (assert (#{0 1 2 3} run)                    (str "Invalid run:" run))
+  (assert (and (vector? yx) (= 2 (count yx))) (str "Invalid yx:" yx))
+  (assert (#{left right up down} direction)   (str "Invalid direction:" direction))
+  (assert (#{0 1 2 3} run)                    (str "Invalid run:" run))
   {:yx yx :direction direction :run run})
 
 (comment
   (->> (map vector (repeatedly #(rand-int 10)) (take 4 (repeatedly #(make-vertex [0 1] [0 -1] 2))))
        (reduce conj (sorted-set-by first-comp))))
 
-(defn- get-neighbours [cell-costs path yx]
-  (assert (= (last path) yx) (str "Incorrect path for yx: " yx " path: " path))
+(defn- get-neighbours [cell-costs path-yxs yx]
+  (assert (= (last path-yxs) yx) (str "Incorrect path for yx: " yx " path: " path-yxs))
   (let [candidate-nbr-yxs (u/get-nbr-yxs cell-costs yx {:diagonals false})
-        prev              (last (butlast path))
+        prev              (last (butlast path-yxs))
         nbr-yxs           (->> candidate-nbr-yxs
                                (filterv (fn [nyx] (not= prev nyx)))
-                               (filterv (fn [nyx] (<= (get-run-length (conj path nyx)) 3))))]
+                               (filterv (fn [nyx] (<= (get-run-length (conj path-yxs nyx)) 3))))]
     (->>  nbr-yxs
           (mapv (fn [nyx]
-                  (make-vertex nyx (mapv - nyx yx) (get-run-length (conj path nyx))))))))
+                  (make-vertex nyx (mapv - nyx yx) (get-run-length (conj path-yxs nyx))))))))
 (comment (get-neighbours (parse-input small-example)
                          [[0 0] [0 1] [0 2] [1 2]]
                          [1 2]))
@@ -142,8 +142,7 @@
         start-path        [start-yx]]
     ;;                                             vertex -> path
     ;; known-paths example {(make-vertex start-yx right 0)   [start-yx]}
-    (loop [vertex->cost  {start-vertex {:cost 0}}
-           vertex->path  {start-vertex start-path}
+    (loop [vertex->state {start-vertex {:cost 0 :predecessor nil}}
            work-items    (sorted-set-by first-comp [0 start-vertex])
            steps         0]
 
@@ -154,37 +153,36 @@
       ;; search to all end-yxs and get the minimum
       ;; usual break criterion: (= end-yx (second (first vs-to-search)))
       (if (empty? work-items)
-        (into {} (filterv (fn [[vertex]] (= (:yx vertex) end-yx)) vertex->cost))
+        (into {} (filterv (fn [[vertex]] (= (:yx vertex) end-yx)) vertex->state))
 
         (let [[cost vertex :as work-item] (first work-items)
               {:keys [yx direction run]} vertex
-              next-work-items      (disj work-items work-item)
-              path-to-vertex       (get vertex->path vertex)
+              path-to-vertex       (->> (iterate (fn [v] (:predecessor (get vertex->state v)))
+                                                 vertex)
+                                        (take 4)
+                                        (keep :yx)
+                                        reverse
+                                        vec)
               nbr-vertices         #break (get-neighbours cell-costs path-to-vertex yx)
               curr-new-cost-pairs  (fn [nbr-v]
-                                     (let [current-cost (-> (get vertex->cost nbr-v) :cost)
+                                     (let [current-cost (-> (get vertex->state nbr-v) :cost)
                                            new-cost     (+ (get-in cell-costs (:yx nbr-v))
                                                            cost)]
                                        [current-cost new-cost]))
-              relax-vertex         (fn [v->cost nbr-v]
+              relax-vertex         (fn [v->state nbr-v]
                                      (let [[current-cost new-cost] (curr-new-cost-pairs nbr-v)]
                                        (if (or (nil? current-cost) (< new-cost current-cost))
-                                         (assoc v->cost nbr-v {:cost new-cost})
-                                         v->cost)))
-              update-path          (fn [v->path {:keys [yx] :as nbr-v}]
-                                     (let [[current-cost new-cost] (curr-new-cost-pairs nbr-v)]
-                                       (if (or (nil? current-cost) (< new-cost current-cost))
-                                         (assoc v->path nbr-v (conj path-to-vertex yx))
-                                         v->path)))
+                                         (assoc v->state nbr-v {:cost new-cost
+                                                                :predecessor vertex})
+                                         v->state)))
               update-work-items   (fn [w-items nbr-v]
                                     (let [[current-cost new-cost] (curr-new-cost-pairs nbr-v)]
                                       (if (or (nil? current-cost) (< new-cost current-cost))
                                         (conj w-items [new-cost nbr-v])
                                          w-items)))]
           (recur
-           (reduce relax-vertex vertex->cost nbr-vertices)
-           (reduce update-path vertex->path nbr-vertices)
-           (reduce update-work-items next-work-items nbr-vertices)
+           (reduce relax-vertex vertex->state nbr-vertices)
+           (reduce update-work-items (disj work-items work-item) nbr-vertices)
            (inc steps)))))))
 
 (defn pt1 [input]
@@ -210,7 +208,7 @@
 
   (time (pt1 input))
 
-  ;; 640
+  ;; 640 (too high)
   ;; 677 (too high)
 
   ;; (pt2 example)
