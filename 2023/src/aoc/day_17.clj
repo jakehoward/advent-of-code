@@ -5,6 +5,13 @@
             [flatland.ordered.set :refer [ordered-set]]
             [clojure.string :as str]))
 
+(def small-example (str/trim "
+2413
+9215
+3215
+3214
+4322"))
+
 (def example (str/trim "
 2413432311323
 3215453535623
@@ -20,17 +27,34 @@
 2546548887735
 4322674655533"))
 
-(def small-example (str/trim "
-2413
-9215
-3215
-3214
-4322"))
+(def example-path (str/trim "
+2>>34^>>>1323
+32v>>>35v5623
+32552456v>>54
+3446585845v52
+4546657867v>6
+14385987984v4
+44578769877v6
+36378779796v>
+465496798688v
+456467998645v
+12246868655<v
+25465488877v5
+43226746555v>"))
 
 (def input (u/get-input 17))
 
 (defn parse-input [input]
-  (mapv #(mapv u/parse-int %) (u/input->matrix input)))
+  (mapv #(mapv u/parse-int %) (u/input->grid input)))
+
+(comment
+  (let [ex-path  (u/input->grid example-path)
+        ex-input (parse-input example)]
+    (->> (for [y (range (u/y-size ex-input))
+               x (range (u/x-size ex-input))
+               :when (#{">" "^" "<" "v"} (get-in ex-path [y x]))]
+           (get-in ex-input [y x]))
+         (u/sum))))
 
 (comment
   "
@@ -76,12 +100,16 @@
 
 (defn- get-neighbours [cell-costs path yx]
   (let [nbr-yxs (u/get-nbr-yxs cell-costs yx {:diagonals false})
-        prev    (last (butlast path))]
-    (->> nbr-yxs
-         (filterv (fn [nyx] (not= prev nyx)))
-         (filterv (fn [nyx] (<= (get-run-length (conj path nyx)) 3))))))
+        prev    (last (butlast path))
+        ans     #break (->> nbr-yxs
+                            (filterv (fn [nyx] (not= prev nyx)))
+                            (filterv (fn [nyx] (<= (get-run-length (conj path nyx)) 3))))]
+    ans))
 
-(defn- shortest-path [start-yx end-yx cell-costs vis-chan]
+;; Bug: get-neighbours only gets to look at one path whereas it needs to look at all
+;;      possible paths to that point, example [0 6] doesn't get to see [0 7] as
+;;      a possible neighbour.
+(defn- shortest-path [start-yx end-yx cell-costs]
   (let [max-steps         100000]
     (loop [known-paths   {start-yx {:cost 0 :path [start-yx]}}
            ;; Strictly speakng a vertex is defined by [co-ord, direction, length-of-travel]
@@ -89,18 +117,17 @@
            vs-to-search  (sorted-set [0 start-yx]) ;; todo - better data structure
            steps         0]
 
-      (when vis-chan
-        (async/>!! vis-chan (second (first vs-to-search))))
+      (when (> steps max-steps) (throw (Exception. (str "Max step count reached: " steps))))
 
-      (when (> steps max-steps)
-        (do (async/close! vis-chan)
-            (throw (Exception. (str "Max step count reached: " steps)))))
-
-      (if (= end-yx (second (first vs-to-search)))
-
-        (do
-          (async/close! vis-chan)
-          {:steps steps :shortest-path (get known-paths end-yx)})
+      ;; I think we have work through the entire priority queue because
+      ;; the end-yx's we find are conceptually on different graphs, so need to
+      ;; search to all end-yxs and get the minimum
+      ;; usual break criterion: (= end-yx (second (first vs-to-search)))
+      (if (empty? vs-to-search)
+        {:steps         steps
+         :cost          (:cost (get known-paths end-yx))
+         :rem-to-search (count vs-to-search)
+         :shortest-path (:path (get known-paths end-yx))}
 
         (let [[cost yx :as vertex] (first vs-to-search)
               next-vs-to-search    (disj vs-to-search vertex)
@@ -127,49 +154,13 @@
            (reduce update-vs-to-search next-vs-to-search nbr-yxs)
            (inc steps)))))))
 
-(defn paths->explored-grid [x-size y-size yxs]
-  (let [explored #break (set yxs)]
-    (->> (for [y (range y-size)
-               x (range x-size)]
-           (cond (= (last yxs) [y x])       :head
-                 (contains? explored [y x]) :explored
-                 :else                      nil))
-         (partition x-size)
-         (mapv #(mapv identity %)))))
-
 (defn pt1 [input]
   (let [grid        (parse-input input)
         cell-costs  grid
-        vis-chan    (async/chan)
+        start-yx    [0 0]
         end-yx      [(dec (u/y-size cell-costs)) (dec (u/x-size cell-costs))]
-        paths       (atom [])
-        _           (async/thread
-                      (loop []
-                        (when-let [item (async/<!! vis-chan)]
-                          (do
-                            (swap! paths (fn [c] (conj c (vec (conj (last c) item)))))
-                            (recur)))))
-        cheapest    (shortest-path [0 0]
-                                   end-yx
-                                   cell-costs
-                                   vis-chan)
-        ans         cheapest
-        _           (async/alts!! [(async/timeout 100)])
-        grids       (map (partial paths->explored-grid (u/x-size grid) (u/y-size grid)) @paths)
-        final-path  (-> cheapest :shortest-path :path set)]
-
-    (->> (vis/grids->html grids (fn [g yx]
-                                  {:shape :rect
-                                   :color (if (and (#{:head :explored} (get-in g yx))
-                                                   (contains? final-path yx))
-                                            "blue"
-                                              (case (get-in g yx)
-                                               :head "blue"
-                                               :explored "green"
-                                               "lightgrey"))
-                                   :text (get-in cell-costs yx)}))
-         (spit "vis.html"))
-
+        cheapest    (shortest-path start-yx end-yx cell-costs)
+        ans         cheapest]
     ans))
 
 ;; (defn pt2 [input]
