@@ -1,6 +1,7 @@
 (ns aoc.day-17
   (:require [aoc.utils :as u]
             [aoc.vis :as vis]
+            [clojure.core.async :as async]
             [flatland.ordered.set :refer [ordered-set]]
             [clojure.string :as str]))
 
@@ -80,7 +81,7 @@
          (filterv (fn [nyx] (not= prev nyx)))
          (filterv (fn [nyx] (<= (get-run-length (conj path nyx)) 3))))))
 
-(defn- shortest-path [start-yx end-yx cell-costs]
+(defn- shortest-path [start-yx end-yx cell-costs vis-chan]
   (let [max-steps         100000]
     (loop [known-paths   {start-yx {:cost 0 :path [start-yx]}}
            ;; Strictly speakng a vertex is defined by [co-ord, direction, length-of-travel]
@@ -88,11 +89,18 @@
            vs-to-search  (sorted-set [0 start-yx]) ;; todo - better data structure
            steps         0]
 
-      (when (> steps max-steps) (throw (Exception. (str "Max step count reached: " steps))))
+      (when vis-chan
+        (async/>!! vis-chan (second (first vs-to-search))))
+
+      (when (> steps max-steps)
+        (do (async/close! vis-chan)
+            (throw (Exception. (str "Max step count reached: " steps)))))
 
       (if (= end-yx (second (first vs-to-search)))
 
-        {:steps steps :shortest-path (get known-paths end-yx)}
+        (do
+          (async/close! vis-chan)
+          {:steps steps :shortest-path (get known-paths end-yx)})
 
         (let [[cost yx :as vertex] (first vs-to-search)
               next-vs-to-search    (disj vs-to-search vertex)
@@ -119,13 +127,49 @@
            (reduce update-vs-to-search next-vs-to-search nbr-yxs)
            (inc steps)))))))
 
+(defn paths->explored-grid [x-size y-size yxs]
+  (let [explored #break (set yxs)]
+    (->> (for [y (range y-size)
+               x (range x-size)]
+           (cond (= (last yxs) [y x])       :head
+                 (contains? explored [y x]) :explored
+                 :else                      nil))
+         (partition x-size)
+         (mapv #(mapv identity %)))))
+
 (defn pt1 [input]
   (let [grid        (parse-input input)
         cell-costs  grid
+        vis-chan    (async/chan)
+        end-yx      [(dec (u/y-size cell-costs)) (dec (u/x-size cell-costs))]
+        paths       (atom [])
+        _           (async/thread
+                      (loop []
+                        (when-let [item (async/<!! vis-chan)]
+                          (do
+                            (swap! paths (fn [c] (conj c (vec (conj (last c) item)))))
+                            (recur)))))
         cheapest    (shortest-path [0 0]
-                                   [(dec (u/y-size cell-costs)) (dec (u/x-size cell-costs))]
-                                   cell-costs)
-        ans         cheapest]
+                                   end-yx
+                                   cell-costs
+                                   vis-chan)
+        ans         cheapest
+        _           (async/alts!! [(async/timeout 100)])
+        grids       (map (partial paths->explored-grid (u/x-size grid) (u/y-size grid)) @paths)
+        final-path  (-> cheapest :shortest-path :path set)]
+
+    (->> (vis/grids->html grids (fn [g yx]
+                                  {:shape :rect
+                                   :color (if (and (#{:head :explored} (get-in g yx))
+                                                   (contains? final-path yx))
+                                            "blue"
+                                              (case (get-in g yx)
+                                               :head "blue"
+                                               :explored "green"
+                                               "lightgrey"))
+                                   :text (get-in cell-costs yx)}))
+         (spit "vis.html"))
+
     ans))
 
 ;; (defn pt2 [input]
