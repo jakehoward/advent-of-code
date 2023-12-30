@@ -133,15 +133,11 @@
                          [[0 0] [0 1] [0 2] [1 2]]
                          [1 2]))
 
-;; Bug: get-neighbours only gets to look at one path whereas it needs to look at all
-;;      possible paths to that point, example [0 6] doesn't get to see [0 7] as
-;;      a possible neighbour.
 (defn- shortest-path [start-yx end-yx cell-costs]
   (let [max-steps         500000
         start-vertex      (make-vertex start-yx right 0)
         start-path        [start-yx]]
-    ;;                                             vertex -> path
-    ;; known-paths example {(make-vertex start-yx right 0)   [start-yx]}
+
     (loop [vertex->state {start-vertex {:cost 0 :predecessor nil}}
            work-items    (sorted-set-by first-comp [0 start-vertex])
            steps         0]
@@ -150,8 +146,8 @@
 
       ;; I think we have work through the entire priority queue because
       ;; the end-yx's we find are conceptually on different graphs, so need to
-      ;; search to all end-yxs and get the minimum
-      ;; usual break criterion: (= end-yx (second (first vs-to-search)))
+      ;; search to all possible end-yxs and get the minimum
+      ;; usual break criterion: get to end-yx <- because know shortest path at that point
       (if (empty? work-items)
         (into {} (filterv (fn [[vertex]] (= (:yx vertex) end-yx)) vertex->state))
 
