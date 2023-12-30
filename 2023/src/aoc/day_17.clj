@@ -119,7 +119,7 @@
   (->> (map vector (repeatedly #(rand-int 10)) (take 4 (repeatedly #(make-vertex [0 1] [0 -1] 2))))
        (reduce conj (sorted-set-by first-comp))))
 
-(defn- get-neighbours-vertex [cell-costs path-yxs yx]
+(defn- get-neighbours [cell-costs path-yxs yx]
   (assert (= (last path-yxs) yx) (str "Incorrect path for yx: " yx " path: " path-yxs))
   (let [candidate-nbr-yxs (u/get-nbr-yxs cell-costs yx {:diagonals false})
         prev              (last (butlast path-yxs))
@@ -129,97 +129,11 @@
     (->>  nbr-yxs
           (mapv (fn [nyx]
                   (make-vertex nyx (mapv - nyx yx) (get-run-length (conj path-yxs nyx))))))))
-
-(defn- get-neighbours [cell-costs path-yxs yx]
-  (assert (= (last path-yxs) yx) (str "Incorrect path for yx: " yx " path: " path-yxs))
-  (let [candidate-nbr-yxs (u/get-nbr-yxs cell-costs yx {:diagonals false})
-        nbr-yxs           (->> candidate-nbr-yxs
-                               (filterv (fn [nyx]
-                                          (and (not (contains? (set path-yxs) nyx))
-                                               (<= (get-run-length (conj path-yxs nyx)) 3)))))]
-    nbr-yxs))
-
 (comment (get-neighbours (parse-input small-example)
                          [[0 0] [0 1] [0 2] [1 2]]
                          [1 2]))
+
 (defn- shortest-path [start-yx end-yx cell-costs]
-  (let [max-steps         5000 ;; 500000
-        start-path        [start-yx]]
-
-    (loop [path->state   {start-path {:cost 0}}
-           work-items    (sorted-set [0 start-path])
-           seen-paths    #{}
-           steps         0]
-
-      (when (> steps max-steps) (throw (Exception. (str "Max step count reached: " steps))))
-
-      ;; I think we have work through the entire priority queue because
-      ;; the end-yx's we find are conceptually on different graphs, so need to
-      ;; search to all possible end-yxs and get the minimum
-      ;; usual break criterion: get to end-yx <- because know shortest path at that point
-      (if (some (fn [wi] (= end-yx (last (last wi)))) work-items)
-        (into {} (filterv (fn [[path]] (= (last path) end-yx)) path->state))
-
-        (let [[cost path-to-yx :as work-item] (first work-items)
-                yx                      (last path-to-yx)
-                nbr-paths              (->> (get-neighbours cell-costs path-to-yx yx)
-                                            (mapv #(conj path-to-yx %)))
-                curr-new-cost-pairs    (fn [nbr-path]
-                                         (let [current-cost (-> (get path->state nbr-path) :cost)
-                                               new-cost     (+ (get-in cell-costs (last nbr-path))
-                                                               cost)]
-                                           [current-cost new-cost]))
-                relax-vertex         (fn [p->state nbr-path]
-                                       (let [[current-cost new-cost] (curr-new-cost-pairs nbr-path)]
-                                         (if (or (nil? current-cost) (< new-cost current-cost))
-                                           (assoc p->state nbr-path {:cost new-cost})
-                                           p->state)))
-                update-work-items   (fn [w-items nbr-path]
-                                      (let [[current-cost new-cost] (curr-new-cost-pairs nbr-path)]
-                                        (if (and
-                                             (or (nil? current-cost) (< new-cost current-cost))
-                                             (not (contains? seen-paths nbr-path)))
-                                          (conj w-items [new-cost nbr-path])
-                                          w-items)))]
-            (recur
-             (reduce relax-vertex path->state nbr-paths)
-             (reduce update-work-items (disj work-items work-item) nbr-paths)
-             (reduce conj seen-paths nbr-paths)
-             (inc steps)))))))
-
-(defn pt1 [input]
-  (let [grid        (parse-input input)
-        cell-costs  grid
-        start-yx    [0 0]
-        end-yx      [(dec (u/y-size cell-costs)) (dec (u/x-size cell-costs))]
-        cheapest    (shortest-path start-yx end-yx cell-costs)
-        ans         cheapest
-        ;; ans         (mapv (fn [[{:keys [yx]} {:keys [cost]}]] {:yx yx :cost cost}) cheapest)
-        ;; ans         (min-by :cost (vals cheapest))
-        ]
-    ans))
-
-;; (defn pt2 [input]
-  ;; (let [matrix (parse-input input)
-        ;; ans    matrix]
-    ;; ans))
-
-(comment
-  (time (pt1 small-example))
-  (time (pt1 example))
-
-  (time (pt1 input))
-
-  ;; 640 (too high)
-  ;; 677 (too high)
-
-  ;; (pt2 example)
-  ;; (pt2 input)
-  ;; Attempt to brute force example data: 50k steps, 71,921 paths, none completed ~ 15 seconds
-  ;;
-  )
-
-(defn- shortest-path-vertex [start-yx end-yx cell-costs]
   (let [max-steps         500000
         start-vertex      (make-vertex start-yx right 0)
         start-path        [start-yx]]
@@ -245,7 +159,7 @@
                                         (keep :yx)
                                         reverse
                                         vec)
-              nbr-vertices         (get-neighbours-vertex cell-costs path-to-vertex yx)
+              nbr-vertices         #break (get-neighbours cell-costs path-to-vertex yx)
               curr-new-cost-pairs  (fn [nbr-v]
                                      (let [current-cost (-> (get vertex->state nbr-v) :cost)
                                            new-cost     (+ (get-in cell-costs (:yx nbr-v))
@@ -266,3 +180,35 @@
            (reduce relax-vertex vertex->state nbr-vertices)
            (reduce update-work-items (disj work-items work-item) nbr-vertices)
            (inc steps)))))))
+
+(defn pt1 [input]
+  (let [grid        (parse-input input)
+        cell-costs  grid
+        start-yx    [0 0]
+        end-yx      [(dec (u/y-size cell-costs)) (dec (u/x-size cell-costs))]
+        cheapest    (shortest-path start-yx end-yx cell-costs)
+        ans         cheapest
+        ans         (mapv (fn [[{:keys [yx]} {:keys [cost]}]] {:yx yx :cost cost}) cheapest)
+        ans         (min-by :cost (vals cheapest))
+        ]
+    ans))
+
+;; (defn pt2 [input]
+  ;; (let [matrix (parse-input input)
+        ;; ans    matrix]
+    ;; ans))
+
+(comment
+  (time (pt1 small-example))
+  (time (pt1 example))
+
+  (time (pt1 input))
+
+  ;; 640 (too high)
+  ;; 677 (too high)
+
+  ;; (pt2 example)
+  ;; (pt2 input)
+  ;; Attempt to brute force example data: 50k steps, 71,921 paths, none completed ~ 15 seconds
+  ;;
+  )
