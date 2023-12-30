@@ -24,13 +24,22 @@
        (map split-line)
        vec))
 
-(defn cols [rows]
-  (apply map vector rows))
+(def input->grid input->matrix)
+
+(defn cols [grid]
+  (apply map vector grid))
+
+(defn rows [grid]
+  grid)
 
 (comment
   (let [input "abc\ndef"]
     (->> input
          input->matrix)))
+
+(defn y-size [grid] (count grid))
+
+(defn x-size [grid] (count (first grid)))
 
 (defn get-neighbours-coords-yx-sz
   ([y-size x-size yx] (get-neighbours-coords-yx-sz y-size x-size yx {}))
@@ -48,20 +57,29 @@
           (filterv (fn [[new-y new-x]] (and (< -1 new-y y-size) (< -1 new-x x-size))))))))
 
 (defn get-neighbours-coords-yx
-  ([matrix yx] (get-neighbours-coords-yx matrix yx {}))
-  ([matrix yx opts]
-   (let [x-size (count (first matrix))
-         y-size (count matrix)]
-     (get-neighbours-coords-yx-sz y-size x-size yx opts))))
+  ([grid yx] (get-neighbours-coords-yx grid yx {}))
+  ([grid yx opts]
+   (let [x-sz (x-size grid)
+         y-sz (y-size grid)]
+     (get-neighbours-coords-yx-sz y-sz x-sz yx opts))))
 
-(defn matrix-out-of-bounds? [m [y x]]
-  (let [x-size (count (first m))
-        y-size (count m)]
+(defn matrix-out-of-bounds? [grid [y x]]
+  (let [x-size (count (first grid))
+        y-size (count grid)]
     (not (and (< -1 y y-size)
               (< -1 x x-size)))))
 
-(defn y-size [matrix] (count matrix))
-(defn x-size [matrix] (count (first matrix)))
+(def grid-out-of-bounds? matrix-out-of-bounds?)
+;; long hand for editor assistance
+(defn grid-in-bounds? [grid yx] ((complement grid-out-of-bounds?) grid yx))
+
+(defn get-nbr-yxs [grid yx opts]
+  (assert (boolean? (:diagonals opts)) "You must pass opts {:diagonals true/false}")
+  (get-neighbours-coords-yx grid yx opts))
+
+(defn get-nbr-yxs-with-size [y-size x-size yx opts]
+  (assert (boolean? (:diagonals opts)) "You must pass opts {:diagonals true/false}")
+  (get-neighbours-coords-yx-sz y-size x-size yx opts))
 
 (comment
   (matrix-out-of-bounds? [[nil nil nil] [nil nil nil]] [2 2])
@@ -70,11 +88,13 @@
 ;; ==========================
 ;; 2d cartesian co-oridinates
 ;; ==========================
-(defn get-neighbours-yx
-  ([matrix yx] (get-neighbours-yx matrix yx {}))
+(defn get-neighbours
+  ([matrix yx] (get-neighbours matrix yx {}))
   ([matrix yx opts]
    (let [nbr-yx (get-neighbours-coords-yx matrix yx opts)]
      (mapv #(get-in matrix %) nbr-yx))))
+
+(def get-nbrs get-neighbours)
 
 (comment
   (get-neighbours-coords-yx [[:a :b :c] [:d :e :f]] [0 0] {:diagonals false}) ;; [[1 0] [0 1]]
@@ -85,12 +105,12 @@
                              [:d :e :f]
                              [:g :h :1]] [1 1] {:diagonals true})
   ;; [[0 1] [2 1] [1 0] [1 2] [0 2] [2 2] [2 0] [0 0]]
-  (get-neighbours-yx [[:a :b :c]
-                      [:d :e :f]
-                      [:g :h :1]] [1 1])
-  (get-neighbours-yx [[:a :b :c]
-                      [:d :e :f]
-                      [:g :h :1]] [2 0] {:diagonals false})
+  (get-neighbours [[:a :b :c]
+                   [:d :e :f]
+                   [:g :h :1]] [1 1])
+  (get-neighbours [[:a :b :c]
+                   [:d :e :f]
+                   [:g :h :1]] [2 0] {:diagonals false})
   ;;
   )
 
@@ -98,6 +118,9 @@
   (for [y (range (count matrix))
         x (range (count (first matrix)))]
     [y x]))
+
+(defn all-grid-coords [grid]
+  (matrix-coords-yx grid))
 
 (defn right [[y x]]
   [y (inc x)])
