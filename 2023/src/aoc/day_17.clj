@@ -70,165 +70,143 @@
                 min))
             coll)))
 
-(defn- new-direction [old-direction yx nbr-yx]
-  (cond (u/right? yx nbr-yx) :right
-        (u/left? yx nbr-yx) :left
-        (u/above? yx nbr-yx) :up
-        (u/below? yx nbr-yx) :down
-        :else (throw (Exception.
-                      (str "Unexpected new direction " old-direction
-                           " yx: " yx
-                           " nbr-yx: " nbr-yx)))))
-
-(defn- get-nbrs [matrix {:keys [direction yxs num-in-row] :as path}]
-  (let [yx             (last yxs)
-        poss-nbr-yxs   (u/get-neighbours-coords-yx matrix yx {:diagonals false})
-        straight-on    (case direction
-                         :right (u/right yx)
-                         :left  (u/left yx)
-                         :up    (u/above yx)
-                         :down  (u/below yx))]
-    (->> poss-nbr-yxs
-         (keep (fn [nbr-yx]
-                 ;; technically want to allow revisits but not
-                 ;; infinite loops
-                 (cond (contains? yxs nbr-yx)
-                       nil
-
-                       (= straight-on nbr-yx)
-                       (when (< num-in-row 3)
-                         {:direction direction :num-in-row (inc num-in-row) :yx nbr-yx})
-
-                       :else
-                       {:direction (new-direction direction yx nbr-yx) :num-in-row 1 :yx nbr-yx})))
-         vec)))
-
-(defn cheapest-path [matrix]
-  (let [start-yx [0 0]
-        end-yx   [(dec (u/y-size matrix)) (dec (u/x-size matrix))]
-        max-steps 50000]
-    (loop [paths           [{:cost 0 :num-in-row 0 :direction :right :yxs (ordered-set start-yx)}]
-           completed-paths []
-           steps           0]
-
-      ;; #dbg ^{:break/when (= 0 (mod steps 1000))}
-
-      (when (> steps max-steps)
-        (throw (Exception. (str "Max step count exceeded. "
-                                (count paths) " paths, "
-                                (count completed-paths) " completed paths."))))
-
-      (if (empty? paths)
-        (min-by :cost completed-paths)
-
-        (let [path      (first paths)
-              nbrs      (get-nbrs matrix path)
-              new-paths (->> nbrs
-                             (mapv (fn [nbr]
-                                     (-> path
-                                         (assoc :num-in-row (:num-in-row nbr))
-                                         (assoc :cost (+ (:cost path) (get-in matrix (:yx nbr))))
-                                         (assoc :direction (:direction nbr))
-                                         (assoc :yxs (conj (:yxs path) (:yx nbr)))))))
-              next-paths (filterv #(not= end-yx (-> (:yxs %) last)) new-paths)]
-          (recur
-           (into (vec (rest paths)) next-paths)
-           (into completed-paths (filterv #(= end-yx (-> (:yxs %) last)) new-paths))
-           (inc steps)))))))
-
 (defn first-comp [a b]
   (let [c (comp (first a) (first b))]
     (if (not= 0 c)
       c
       (comp (rest a) (rest b)))))
 
-(defn neighbours [routes yx]
-  (u/get-neighbours-coords-yx routes yx {:diagonals false}))
-
-(defn best-case-cost-to-end [size y x]
-  (- (+ size size) y x 2))
+(defn best-case-cost-to-end [x-size y-size y x]
+  (- (+ x-size y-size) y x 2))
 
 (defn path-cost [node-cost cheapest-nbr-cost]
   (+ node-cost cheapest-nbr-cost))
 
-(defn best-total-cost [the-path-cost size [y x]]
+(defn best-total-cost [the-path-cost x-size y-size [y x]]
   (+ the-path-cost
-     (best-case-cost-to-end size y x)))
+     (best-case-cost-to-end x-size y-size y x)))
 
-(defn get-neighbours [all-paths path]
-  ;; interestingly in the next step of the algorithm, where
-  ;; we explore the neighbours we create here, they won't
-  ;; necessarily consider path a nbr.
+(defn- get-nbr-yxs [cell-costs all-paths yx]
+  (let [run-length          (fn [nyx yx]
+                               (->> (:yxs (get-in all-paths nyx) [])
+                                    reverse
+                                    (take-while #(or (= (first %)  (first yx))
+                                                     (= (second %) (second yx))))
+                                    count))
+        path-run-length     (fn [yxs]
+                              (->> yxs
+                                   reverse
+                                   (take-while #(or (= (first %)  (first (last yxs)))
+                                                    (= (second %) (second (last yxs)))))
+                                   count))
+        candidate-yxs       (u/get-neighbours-coords-yx cell-costs yx {:diagonals false})
+        existing-paths      (->> candidate-yxs
+                                 (keep #(get-in all-paths %))
+                                 (mapv #(update % :yxs conj yx))
+                                 (filterv #(<= (path-run-length (:yxs %)) 3)))
 
-  (let [all-poss-nbr-yxs (u/get-neighbours-coords-yx (last (:yxs path)) {:diagonals false})
-        valid-existing   (->> all-poss-nbr-yxs
-                              (keep #(get-in all-paths %))
-                              (filterv (fn [n] (or (not= (:direction n) (:direction path))
-                                                   (< 3 (:run path)))) ))]))
+        existing-path-nbr   (mapv #(last (butlast (:yxs %))) existing-paths)
+        ;; only valid if existing path through yx => nbr is less than 4 in same direction
+        valid-extension-nbr nil
+        valid-nbr-yxs (->> candidate-yxs
+                           (filter #(< (run-length % yx) 3)))
+        ]
+    nil))
 
-;; Route: cost, direction, num-in-row, yxs
+;; > > c i c
+;; v > > c
 
-;; (defn- same-direction-and-run-len? [path-a path-b]
-  ;; (and (= (:direction path-a) (:direction path-b))
-       ;; (= (:run path-a) (:run path-b))))
+;; > > c i c
+;; - - - c
+(defn path-run-length [yxs]
+  (->> yxs
+       reverse
+       (take-while #(or (= (first %)  (first (last yxs)))
+                        (= (second %) (second (last yxs)))))
+       count))
 
+(defn is-valid-next-nbr? [paths-to-yx nbr-yx]
+  ;; valid nexts are existing + yx + candidate
+  ;; that satisfy: not going back on self, run length <= 3
+  (->>  paths-to-yx
+        (filter (fn [path-to-yx]
+                  (and (<= (path-run-length (conj (vec path-to-yx) nbr-yx)) 3)
+                       (not= (last path-to-yx) nbr-yx))))
+        seq
+        boolean))
+
+(defn is-valid-existing-nbr? [all-paths yx nbr-yx]
+  (let [existing-path (get-in all-paths nbr-yx)]
+    (if existing-path
+      (<= (path-run-length (conj (:yxs existing-path) yx)) 3)
+      false)))
+
+(defn- existing-path-nbr-yxs [cell-costs all-paths yx]
+  (let [candidate-yxs (u/get-neighbours-coords-yx cell-costs yx {:diagonals false})]
+    (filterv (partial is-valid-existing-nbr? all-paths yx) candidate-yxs)))
+
+(defn- get-next-nbr-yxs [cell-costs all-paths yx]
+  (let [candidate-yxs (u/get-neighbours-coords-yx cell-costs yx {:diagonals false})
+        paths-to-yx   (->> (existing-path-nbr-yxs cell-costs all-paths yx)
+                           (mapv (fn [nyx] (-> (get-in all-paths nyx) :yxs (conj yx)))))]
+
+    (when (and (not= yx [0 0]) (some #(= 0 (count %)) paths-to-yx))
+      (throw (Exception. (str "Invalid: yx: " yx " paths-to-yx: " paths-to-yx "all: " all-paths))))
+
+    (if (= [0 0] yx)
+      candidate-yxs
+      (filterv (partial is-valid-next-nbr? paths-to-yx) candidate-yxs))))
+
+
+;; Bug: The valid path that you rely on existing can be
+;;      eradicated by a subsequent iteration.
 (defn a-star [start-yx cell-costs]
-  (let [size       (count cell-costs)
-        first-path {:cost 0 :direction :right :run 0 :yxs [start-yx]}
-        max-steps 1500]
+  (let [max-steps 2500
+        y-size (u/y-size cell-costs)
+        x-size (u/x-size cell-costs)]
     (loop [steps 0
-           all-paths (vec (repeat size (vec (repeat size nil))))
-           work-todo (sorted-set-by first-comp [0 first-path])]
+           all-paths (vec (repeat y-size (vec (repeat x-size nil))))
+           work-todo (sorted-set [0 start-yx])]
 
       (when (> steps max-steps)
         (throw (Exception. (str "Max step count exceeded. "
                                 (count work-todo) " work-items "
                                 (count (filter identity (flatten all-paths))) " ends reached."))))
 
-      ;; todo: is it safe to end when reached cell? If you get there is it inherently
-      ;;       the cheapest way to do so? Could another work item usurp it?
-      (if (empty? work-todo) ;;(or (empty? work-todo) (not (nil? (peek (peek routes)))))
+      ;; try: (or (empty? work-todo) (not (nil? (peek (peek routes)))))
+      ;; (not 100% sure it's safe)
+      (if (empty? work-todo)
 
-        ;; TODO: maintain multiple routes (min-by :cost ???)
         {:route (peek (peek all-paths)) :steps steps}
 
-        (let [path-to-explore (first work-todo)
-              yx              (last (:yxs path-to-explore))
-              rest-work-todo  (disj work-todo path-to-explore)
-              nbrs            (get-neighbours all-paths path-to-explore)
-              ;; TODO: somehow need to ensure that cheapest nbrs for other directions and
-              ;;       run lengths are still explored. Does this happen naturally?
-              ;;       Choosing this cheapest nbr basically shuts down future options
-              ;;       which may be cheaper. But without choosing one like this, there's
-              ;;       no point to this algorithm, it might as well be brute force...
-              cheapest-nbr    (min-by :cost (filter :cost nbrs))
-              newcost         (path-cost (get-in cell-costs yx) (:cost cheapest-nbr 0))
-              oldcost         (:cost path-to-explore)
-              new-run         (if (= (:direction cheapest-nbr) (:direction path-to-explore))
-                                (inc (:run path-to-explore))
-                                1)]
-          ;; TODO: is this logic still valid? Maybe only if we consider this point,
-          ;;       direction and run length?
+        (let [[_ yx :as work-item] (first work-todo)
+              rest-work-todo    (disj work-todo work-item)
+
+              next-nbr-yxs      (get-next-nbr-yxs cell-costs all-paths yx)
+              existing-nbr-yxs  (existing-path-nbr-yxs cell-costs all-paths yx)
+              nbr-yxs           (concat existing-nbr-yxs next-nbr-yxs)
+
+              ;; can't simply look at all-neighbours as a valid yx to extend into
+              ;; isn't necessarily a valid path to extend from
+              cheapest-nbr     (min-by :cost (map #(get-in all-paths %) existing-nbr-yxs))
+              newcost          (path-cost (get-in cell-costs yx) (:cost cheapest-nbr 0))
+              oldcost          (:cost (get-in all-paths yx))
+              foo              #dbg ^{:break/when (contains? (set next-nbr-yxs) [3 1])} nbr-yxs]
           (if (and oldcost (>= newcost oldcost))
             (recur (inc steps) all-paths rest-work-todo)
             (recur (inc steps)
-                   ;; TODO: maintain multiple routes
                    (assoc-in all-paths yx
-                             {:cost      newcost
-                              :direction (:direction path-to-explore)
-                              :run       new-run
-                              :yxs       (conj (:yxs cheapest-nbr []) yx)})
+                             {:cost newcost
+                              :yxs  (conj (:yxs cheapest-nbr []) yx)})
                    (into rest-work-todo
-                         (map (fn [nbr]
-                                [(best-total-cost newcost size (-> nbr :yxs last))
-                                 (-> nbr :yxs last)])
-                              nbrs)))))))))
+                         (mapv (fn [nyx] [(best-total-cost newcost x-size y-size nyx) nyx])
+                               nbr-yxs)))))))))
 
 
 (defn pt1 [input]
   (let [matrix   (parse-input input)
         cheapest (a-star [0 0] matrix)
-        ans      (select-keys cheapest [:cost :yxs])]
+        ans      cheapest]
     ans))
 
 (defn pt2 [input]
