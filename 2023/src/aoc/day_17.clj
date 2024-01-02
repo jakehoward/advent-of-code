@@ -12,6 +12,12 @@
 3214
 4322"))
 
+(def another-small-ex (str/trim "
+12212
+22221
+12212
+12112"))
+
 (def example (str/trim "
 2413432311323
 3215453535623
@@ -155,8 +161,9 @@
       ;; the end-yx's we find are conceptually on different graphs, so need to
       ;; search to all possible end-yxs and get the minimum
       ;; usual break criterion: get to end-yx <- because know shortest path at that point
-      (if (empty? work-items)
-        (into {} (filterv (fn [[vertex]] (= (:yx vertex) end-yx)) vertex->state))
+      (if (= (-> work-items first second :yx) end-yx)  ;; (empty? work-items)
+        {:work-item (first work-items)
+         :ans (into {} (filterv (fn [[vertex]] (= (:yx vertex) end-yx)) vertex->state))}
 
         (let [[cost vertex :as work-item] (first work-items)
               {:keys [yx direction run]} vertex
@@ -193,10 +200,13 @@
         cell-costs  grid
         start-yx    [0 0]
         end-yx      [(dec (u/y-size cell-costs)) (dec (u/x-size cell-costs))]
+        _ (println "end-yx" end-yx)
         cheapest    (shortest-path start-yx end-yx cell-costs)
         ans         cheapest
-        ans         (mapv (fn [[{:keys [yx]} {:keys [cost]}]] {:yx yx :cost cost}) cheapest)
-        ans         (min-by :cost (vals cheapest))
+        ;; ans         (mapv (fn [[{:keys [yx]} {:keys [cost]}]] {:yx yx :cost cost}) cheapest)
+        ;; ans         (min-by :cost (vals cheapest))
+        ans        {:work-item (:work-item cheapest)
+                    :costs     (map :cost (vals (:ans cheapest)))}
         ]
     ans))
 
@@ -207,9 +217,11 @@
 
 (comment
   (time (pt1 small-example))
+  (time (pt1 another-small-ex))
   (time (pt1 example))
 
   (time (pt1 input))
+  ;; {:cost 640, :predecessor {:yx [140 139], :direction [0 1], :run 1, :pre-run [140 138]}}
   {:cost 640, :predecessor {:yx [140 139], :direction [0 1], :run 1, :pre-run [140 138]}}
   ;; {:cost 640, :predecessor {:yx [140 139], :direction [0 1], :run 1, :pre-run [139 138]}}
 
