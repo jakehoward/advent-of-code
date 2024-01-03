@@ -162,6 +162,7 @@
 ;; convenience
 ;; ===========
 (defn sum [xs] (reduce + 0 xs))
+(defn halve [x] (* 1/2 x))
 (defn build-unique-index [xs k] (reduce (fn [acc item]
                                           (assert (nil? (get acc (get item k)))
                                                   (str "Cannot duplicate key: '" (get item k) "' in unique index"))
