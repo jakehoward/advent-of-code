@@ -4,7 +4,7 @@
 #include "utils.h"
 
 namespace Days {
-    void run1(Utils::Mode mode);
+    void run1(Utils::Mode mode, int part);
 }
 
 #endif
