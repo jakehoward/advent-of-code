@@ -8,10 +8,19 @@ std::string example = R"(1721
 675
 1456)";
 
-void Days::run1() {
-    auto tokens = Utils::split(example, std::regex(R"(\n)"));
-    for (auto token: tokens) {
-        std::cerr << token << std::endl;
+void answer(std::string const& input) {
+    std::cout << "The answer is: " << "TBD! (" << Utils::splitLines(input) <<")" << std::endl;
+}
+
+void Days::run1(Utils::Mode mode) {
+    switch (mode) {
+        case Utils::Mode::Example:
+            answer(example);
+            break;
+        case Utils::Mode::Input:
+            answer(Utils::readFile("./input/1.txt"));
+            break;
+        default:
+            throw std::runtime_error("No option found for mode");
     }
-    std::cout << "The answer is: " << "TBD!" << std::endl;
 }
