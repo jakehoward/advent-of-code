@@ -41,6 +41,12 @@ std::vector<std::string> Utils::split(std::string const& str, std::regex const& 
     return {it, std::sregex_token_iterator()};
 }
 
+std::vector<long> Utils::stringsToLongs(std::vector<std::string> const& strings) {
+    std::vector<long> longs(strings.size());
+    std::transform(strings.begin(), strings.end(), longs.begin(), [](std::string const& s){ return std::stol(s); });
+    return std::move(longs);
+}
+
 Utils::Mode Utils::parseMode(std::string const& modeStr) {
     if (modeStr == "example") {
         return Utils::Mode::Example;

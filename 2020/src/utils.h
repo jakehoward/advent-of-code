@@ -5,6 +5,8 @@
 #include <map>
 #include <regex>
 
+#include <utility>
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -56,6 +58,8 @@ namespace Utils {
     std::vector<std::string> splitWhitespace(std::string const &str);
 
     std::vector<std::string> split(std::string const &str, std::regex const &re);
+
+    std::vector<long> stringsToLongs(std::vector<std::string> const& strings);
 
     Mode parseMode(std::string const &modeStr);
 }

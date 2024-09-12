@@ -9,7 +9,7 @@ std::string example = R"(1721
 1456)";
 
 void answer(std::string const& input) {
-    std::cout << "The answer is: " << "TBD! (" << Utils::splitLines(input) <<")" << std::endl;
+    std::cout << "The answer is: " << "TBD! (" << Utils::stringsToLongs(Utils::splitLines(input)) <<")" << std::endl;
 }
 
 void Days::run1(Utils::Mode mode) {
