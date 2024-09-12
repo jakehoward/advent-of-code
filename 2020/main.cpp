@@ -17,6 +17,8 @@ int main(int argc, char *argv[]) {
             Days::run2(mode, part);
         } else if (std::string(argv[1]) == "3") {
             Days::run3(mode, part);
+        } else if (std::string(argv[1]) == "4") {
+            Days::run4(mode, part);
         } else {
             throw std::runtime_error("Cannot find function for: " + std::string(argv[1]));
         }

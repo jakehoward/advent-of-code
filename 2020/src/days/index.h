@@ -8,5 +8,7 @@ namespace Days {
     void run2(Utils::Mode mode, int part);
 
     void run3(Utils::Mode mode, int part);
+
+    void run4(Utils::Mode mode, int part);
 }
 
