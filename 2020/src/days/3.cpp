@@ -1,5 +1,6 @@
 #include "index.h"
 #include "utils.h"
+#include "matrix.h"
 
 namespace Day3 {
     std::string example = R"(..##.......
@@ -19,7 +20,23 @@ namespace Day3 {
     }
 
     void part_i(std::string const &input) {
-        std::cout << "The answer is: " << "TBD!" << std::endl;
+        auto m = Utils::buildMatrix(input, {true});
+        int latch = 0;
+        int tree_count = 0;
+        int x = 0;
+        int y = 0;
+        while(latch < 10'000) {
+            ++latch;
+            if (m.at(x, y) == '#') {
+                ++tree_count;
+            }
+            x += 3;
+            y += 1;
+            if (!m.inBounds(x, y)) {
+                break;
+            }
+        }
+        std::cout << "The answer is: " << tree_count << std::endl;
     }
 }
 

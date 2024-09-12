@@ -53,6 +53,30 @@ private:
 };
 
 template<typename Type, typename IndexType>
+Type Matrix<Type, IndexType>::at(IndexType const x, IndexType const y) const {
+    if (inBounds(x, y)) {
+        if (x >= x_size && config.repeatX) {
+            return data.at((x_size * y) + (x % x_size));
+        }
+        return data.at((x_size * y) + x);
+    }
+
+    std::string x_size_desc = config.repeatX ? "inf" : std::to_string(x_size);
+    std::string err =
+            std::string("Attempted to access matrix[") + x_size_desc + "," + std::to_string(y_size) + "] at: (" +
+            std::to_string(x) + "," + std::to_string(y) + ")";
+    throw std::runtime_error(err);
+}
+
+template<typename Type, typename IndexType>
+bool Matrix<Type, IndexType>::inBounds(IndexType const x, IndexType const y) const {
+    if (config.repeatX) {
+        return (0 <= y) && (y < y_size);
+    }
+    return (0 <= x) && (x < x_size) && (0 <= y) && (y < y_size);
+};
+
+template<typename Type, typename IndexType>
 std::ostream &operator<<(std::ostream &os, Matrix<Type, IndexType> const &matrix) {
     os << "Matrix<\n";
     for (int row = 0; row < matrix.y_size; ++row) {

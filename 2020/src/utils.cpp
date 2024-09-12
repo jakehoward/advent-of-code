@@ -1,3 +1,4 @@
+#include <utility>
 #include "utils.h"
 
 std::string Utils::readFile(std::string const& path) {
@@ -15,6 +16,25 @@ std::string Utils::readFile(std::string const& path) {
 std::vector<std::string> Utils::readLines(std::string const& path) {
     return Utils::split(Utils::readFile(path), "\n");
 }
+
+Matrix<char, long> Utils::buildMatrix(std::string const &input, MatrixConfig const& config) {
+    auto lines = Utils::splitLines(input);
+
+    // We'll make a lot of assumptions and plough boldy onwards...
+    std::vector<char> data{};
+    int sz = lines[0].length() * lines.size();
+    data.reserve(sz);
+    int x = 0;
+    for (auto const& line: lines) {
+        for (auto c: line) {
+            ++x;
+            data.push_back(c);
+        }
+    }
+
+    return std::move(Matrix<char, long>(data, lines[0].length(), lines.size(), config));
+}
+
 
 std::vector<std::string> Utils::split(std::string const& str, std::string const& delimiter) {
     std::vector<std::string> result;

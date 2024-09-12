@@ -13,6 +13,8 @@
 
 #include <exception>
 
+#include "matrix.h"
+
 template<typename T>
 std::ostream &operator<<(std::ostream &os, const std::vector<T> &vec) {
     os << "[";
@@ -44,6 +46,8 @@ namespace Utils {
     std::string readFile(std::string const &path);
 
     std::vector<std::string> readLines(std::string const &path);
+
+    Matrix<char, long> buildMatrix(std::string const &input, MatrixConfig const& config);
 
     std::vector<std::string> split(std::string const &str, std::string const &delimiter);
 
