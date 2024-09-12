@@ -13,12 +13,6 @@
 
 #include <exception>
 
-#define my_assert(condition, message) \
-    if (!(condition)) { \
-        std::cerr << "Assertion failed: (" #condition "), message: " << message << "\n"; \
-        assert(condition); \
-    }
-
 template<typename T>
 std::ostream &operator<<(std::ostream &os, const std::vector<T> &vec) {
     os << "[";
