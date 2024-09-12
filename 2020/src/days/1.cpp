@@ -9,7 +9,18 @@ std::string example = R"(1721
 1456)";
 
 void answer(std::string const& input) {
-    std::cout << "The answer is: " << "TBD! (" << Utils::stringsToLongs(Utils::splitLines(input)) <<")" << std::endl;
+    auto nums = Utils::stringsToLongs(Utils::splitLines(input));
+    long a, b;
+    for (auto n: nums) {
+        for (auto m: nums) {
+            if (n + m == 2020) {
+                a = n;
+                b = m;
+            }
+        }
+    }
+
+    std::cout << "The answer is: " << a * b << std::endl;
 }
 
 void Days::run1(Utils::Mode mode) {
