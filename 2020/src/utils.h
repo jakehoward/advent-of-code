@@ -36,7 +36,7 @@ template<typename Key, typename Value>
 std::ostream &operator<<(std::ostream &os, const std::map<Key, Value> &m) {
     os << "{\n";
     for (auto [k, v]: m) {
-        os << "  " << k << ":" <<  v << ",\n";
+        os << "  " << k << ":" << v << ",\n";
     }
     os << "}";
     return os;
@@ -59,7 +59,7 @@ namespace Utils {
 
     std::vector<std::string> split(std::string const &str, std::regex const &re);
 
-    std::vector<long> stringsToLongs(std::vector<std::string> const& strings);
+    std::vector<long> stringsToLongs(std::vector<std::string> const &strings);
 
     Mode parseMode(std::string const &modeStr);
 }

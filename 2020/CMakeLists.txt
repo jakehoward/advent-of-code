@@ -3,7 +3,5 @@ project(aoc)
 
 set(CMAKE_CXX_STANDARD 17)
 
-file(GLOB SOURCES "src/days/*.cpp")
 include_directories(src src/days)
-add_executable(aoc main.cpp ${SOURCES} src/utils.cpp
-        src/utils.h)
+add_executable(aoc main.cpp src/utils.cpp src/days/1.cpp src/days/2.cpp src/utils.h)
