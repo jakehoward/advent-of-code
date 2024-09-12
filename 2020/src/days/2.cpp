@@ -22,7 +22,8 @@ namespace Day2 {
         auto parsed_min_max = Utils::stringsToLongs(Utils::split(min_max, "-"));
         auto min = parsed_min_max[0];
         auto max = parsed_min_max[1];
-//        std::cerr << "min: '" << min << "' max: '" << max << "' c: '" << character << "' password: '" << password << "'" << std::endl;
+//        std::cerr << "min: '" << min << "' max: '" << max << "' c: '" << character << "' password: '" << password << "'"
+//                  << std::endl;
         return {min, max, character, password};
     }
 
@@ -30,15 +31,33 @@ namespace Day2 {
         Info info = parse_line(line);
         int num = 0;
         for (char c: info.password) {
-            if(c == info.character) {
+            if (c == info.character) {
                 ++num;
             }
         }
         return info.min <= num && num <= info.max;
     }
 
+    bool is_valid_ii(std::string const &line) {
+        Info info = parse_line(line);
+        if (info.password.length() >= info.max) {
+            auto one = info.password[info.min - 1] == info.character;
+            auto other = info.password[info.max - 1] == info.character;
+            auto both = one && other;
+            return (one || other) && !both;
+        }
+        return false;
+    }
+
     void part_ii(std::string const &input) {
-        std::cout << "The answer is: " << "TBD" << std::endl;
+        auto lines = Utils::splitLines(input);
+        int valid_count{0};
+        for (auto line: lines) {
+            if (is_valid_ii(line)) {
+                ++valid_count;
+            }
+        }
+        std::cout << "The answer is: " << valid_count << std::endl;
     }
 
     void part_i(std::string const &input) {
