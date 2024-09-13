@@ -4,4 +4,5 @@ project(aoc)
 set(CMAKE_CXX_STANDARD 17)
 
 include_directories(src src/days)
-add_executable(aoc main.cpp src/utils.cpp src/days/1.cpp src/days/2.cpp src/days/3.cpp src/days/4.cpp src/matrix.cpp)
+add_executable(aoc main.cpp src/utils.cpp src/days/1.cpp src/days/2.cpp src/days/3.cpp src/matrix.cpp
+        src/days/4.cpp)
