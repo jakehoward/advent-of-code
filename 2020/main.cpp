@@ -67,7 +67,8 @@ int main(int argc, char *argv[]) {
 
         auto end = std::chrono::high_resolution_clock::now();
         auto diff = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-        std::cout << "Time taken: " << diff.count() << " µs" << std::endl;
+        auto diffMs = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+        std::cout << "Time taken: " << diff.count() << " µs" << " (" << diffMs.count() << " ms)" << std::endl;
     } else if (argc == 2 && std::string(argv[1]) == "test") {
         test_matrix();
     } else {
