@@ -19,6 +19,48 @@ int main(int argc, char *argv[]) {
             Days::run3(mode, part);
         } else if (std::string(argv[1]) == "4") {
             Days::run4(mode, part);
+        } else if (std::string(argv[1]) == "5") {
+            Days::run5(mode, part);
+        } else if (std::string(argv[1]) == "6") {
+            Days::run6(mode, part);
+        } else if (std::string(argv[1]) == "7") {
+            Days::run7(mode, part);
+        } else if (std::string(argv[1]) == "8") {
+            Days::run8(mode, part);
+        } else if (std::string(argv[1]) == "9") {
+            Days::run9(mode, part);
+        } else if (std::string(argv[1]) == "10") {
+            Days::run10(mode, part);
+        } else if (std::string(argv[1]) == "11") {
+            Days::run11(mode, part);
+        } else if (std::string(argv[1]) == "12") {
+            Days::run12(mode, part);
+        } else if (std::string(argv[1]) == "13") {
+            Days::run13(mode, part);
+        } else if (std::string(argv[1]) == "14") {
+            Days::run14(mode, part);
+        } else if (std::string(argv[1]) == "15") {
+            Days::run15(mode, part);
+        } else if (std::string(argv[1]) == "16") {
+            Days::run16(mode, part);
+        } else if (std::string(argv[1]) == "17") {
+            Days::run17(mode, part);
+        } else if (std::string(argv[1]) == "18") {
+            Days::run18(mode, part);
+        } else if (std::string(argv[1]) == "19") {
+            Days::run19(mode, part);
+        } else if (std::string(argv[1]) == "20") {
+            Days::run20(mode, part);
+        } else if (std::string(argv[1]) == "21") {
+            Days::run21(mode, part);
+        } else if (std::string(argv[1]) == "22") {
+            Days::run22(mode, part);
+        } else if (std::string(argv[1]) == "23") {
+            Days::run23(mode, part);
+        } else if (std::string(argv[1]) == "24") {
+            Days::run24(mode, part);
+        } else if (std::string(argv[1]) == "25") {
+            Days::run25(mode, part);
         } else {
             throw std::runtime_error("Cannot find function for: " + std::string(argv[1]));
         }

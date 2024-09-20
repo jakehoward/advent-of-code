@@ -18,11 +18,11 @@ public:
         throw std::runtime_error("Empty matrix initialisation not allowed");
     }
 
-    Matrix(std::vector<Type> const &data, IndexType x_size, IndexType y_size) {
+    Matrix(const std::vector<Type> &data, IndexType x_size, IndexType y_size) {
         Matrix(data, x_size, y_size, {false});
     };
 
-    Matrix(std::vector<Type> const &data, IndexType x_size, IndexType y_size, MatrixConfig config) : data(data),
+    Matrix(const std::vector<Type> &data, IndexType x_size, IndexType y_size, MatrixConfig config) : data(data),
                                                                                                      y_size(y_size),
                                                                                                      x_size(x_size),
                                                                                                      config(config) {
@@ -40,9 +40,9 @@ public:
         }
     };
 
-    Type at(IndexType const x, IndexType const y) const;
+    Type at(IndexType x, IndexType y) const;
 
-    bool inBounds(IndexType const x, IndexType const y) const;
+    bool inBounds(IndexType x, IndexType y) const;
 
     const IndexType y_size;
     const IndexType x_size;
@@ -53,7 +53,7 @@ private:
 };
 
 template<typename Type, typename IndexType>
-Type Matrix<Type, IndexType>::at(IndexType const x, IndexType const y) const {
+Type Matrix<Type, IndexType>::at(const IndexType x, const IndexType y) const {
     if (inBounds(x, y)) {
         if (x >= x_size && config.repeatX) {
             return data.at((x_size * y) + (x % x_size));
@@ -69,7 +69,7 @@ Type Matrix<Type, IndexType>::at(IndexType const x, IndexType const y) const {
 }
 
 template<typename Type, typename IndexType>
-bool Matrix<Type, IndexType>::inBounds(IndexType const x, IndexType const y) const {
+bool Matrix<Type, IndexType>::inBounds(const IndexType x, const IndexType y) const {
     if (config.repeatX) {
         return (0 <= y) && (y < y_size);
     }
@@ -77,7 +77,7 @@ bool Matrix<Type, IndexType>::inBounds(IndexType const x, IndexType const y) con
 };
 
 template<typename Type, typename IndexType>
-std::ostream &operator<<(std::ostream &os, Matrix<Type, IndexType> const &matrix) {
+std::ostream &operator<<(std::ostream &os, const Matrix<Type, IndexType> &matrix) {
     os << "Matrix<\n";
     for (int row = 0; row < matrix.y_size; ++row) {
         for (int col = 0; col < matrix.x_size; ++col) {
