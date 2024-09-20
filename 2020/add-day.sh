@@ -14,6 +14,12 @@ if ! [[ "$day" =~ ^[0-9]+$ ]] || (( day < 1 || day > 25 )); then
   exit 1
 fi
 
+output_file="src/days/${day}.cpp"
+if [ -f "${output_file}" ]; then
+    echo "${output_file} already exists, exiting..."
+    exit 1
+fi
+
 file="src/days/index.h"
 
 if [[ ! -f "$file" ]]; then
@@ -24,6 +30,5 @@ fi
 sed -i "" "s/inline void run${day}(Utils::Mode mode, int part) {};/void run${day}(Utils::Mode mode, int part);/g" "$file"
 echo "Successfully updated definition for day $day in $file."
 
-output_file="src/days/${day}.cpp"
 sed "s/{{n}}/$day/g" day-n.cpp.template > "${output_file}"
 echo "Successfully created ${output_file}"
