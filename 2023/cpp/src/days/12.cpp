@@ -5,6 +5,7 @@
 #include <iterator>
 #include <algorithm>
 #include <map>
+//#include <string_view>
 
 using std::vector;
 using std::string;
@@ -41,10 +42,9 @@ namespace Day12 {
         for (const auto n: p.nums) {
             nums += std::to_string(n);
         }
-        return p.config + nums;
+        return std::string(p.config) + nums; // todo: ruins string view optimisation
     }
 
-    // Cleared on each top level run (todo: can I add a struct of string and vector to a map, how is equality done?)
     std::map<string, long> cache{};
     long count_arrangements(const PuzzleLine &puzzleLine) {
         const string pAsString = puzzle_to_string(puzzleLine);
@@ -60,19 +60,23 @@ namespace Day12 {
             return 1;
         }
         if (nums.empty()) {
-            if (regex_match(config, std::regex(".*#.*"))) {
+
+            if (config.find('#') != std::string::npos) {
                 return 0;
             }
             return 1;
         }
 
         long ans{0};
-        auto all_springs_regex = std::regex("[\?#]+");
 
-        // ex: .??..??...?##. 1,1,3
-        // if ? => can first num fit? yes: drop num, and consume num + 1 and any (.) from config, recurse; no: consume to next (.) or (?#) and recurse
         const long n = nums.at(0);
-        bool all_springs = regex_match(config.substr(0, n), all_springs_regex);
+        bool all_springs = true;
+        for (const auto &c: config.substr(0, n)) {
+            if (c != '#' && c != '?') {
+                all_springs = false;
+                break;
+            }
+        }
         bool num_can_fit = (config.length() == n && all_springs) ||
                            (config.length() > n && all_springs &&
                             ((config.at(n) == '?') || (config.at(n) == '.')));
@@ -83,9 +87,9 @@ namespace Day12 {
             if (config.length() == n) {
                 next_config = "";
             } else if (config.length() == n + 1) {
-                next_config = ".";
+                next_config = "";
             } else {
-                next_config = "." + config.substr(n + 1, config.length() - n);
+                next_config = config.substr(n + 1);
             }
 
             next_nums = nums;
@@ -93,7 +97,7 @@ namespace Day12 {
         }
 
         if (config.at(0) == '.') {
-            ans += count_arrangements({config.substr(1, config.length() - 1), nums});
+            ans += count_arrangements({config.substr(1), nums});
         } else if (config.at(0) == '?') {
             if (num_can_fit) {
                 ans += count_arrangements({next_config, next_nums});
@@ -125,7 +129,7 @@ namespace Day12 {
                     biggerConfig += config;
                     continue;
                 }
-                biggerConfig += ("?" + config);
+                biggerConfig += ("?" + std::string(config));
             }
             vector<long> biggerNums(num_copies * puzzle.nums.size());
             for (int i = 0; i < num_copies; ++i) {
