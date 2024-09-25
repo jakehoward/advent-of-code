@@ -47,7 +47,10 @@ namespace Utils {
 
     std::vector<std::string> readLines(std::string const &path);
 
+
+    Matrix<char, long> buildMatrix(std::string const &input);
     Matrix<char, long> buildMatrix(std::string const &input, MatrixConfig const& config);
+    Matrix<int, long> buildIntMatrix(std::string const &input);
 
     std::vector<std::string> split(std::string const &str, std::string const &delimiter);
 
@@ -60,4 +63,6 @@ namespace Utils {
     std::vector<long> stringsToLongs(std::vector<std::string> const &strings);
 
     Mode parseMode(std::string const &modeStr);
+
+    std::vector<std::pair<long, long>> get_nbrs(long x, long y, long x_max, long y_max);
 }

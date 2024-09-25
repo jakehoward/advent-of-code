@@ -35,7 +35,7 @@ namespace Days {
 
     inline void run16(Utils::Mode mode, int part) {};
 
-    inline void run17(Utils::Mode mode, int part) {};
+    void run17(Utils::Mode mode, int part);
 
     inline void run18(Utils::Mode mode, int part) {};
 

@@ -11,21 +11,45 @@ struct MatrixConfig {
 //    bool repeatNegY;
 };
 
-template<typename Type, typename IndexType>
+template<typename ValueType, typename IndexType>
 class Matrix {
 public:
     Matrix() {
         throw std::runtime_error("Empty matrix initialisation not allowed");
     }
 
-    Matrix(const std::vector<Type> &data, IndexType x_size, IndexType y_size) {
-        Matrix(data, x_size, y_size, {false});
+    Matrix(const std::vector<ValueType> &data, IndexType x_size, IndexType y_size) : data(data),
+                                                                                     y_size(y_size),
+                                                                                     x_size(x_size),
+                                                                                     x_max(x_size-1),
+                                                                                     y_max(y_size-1),
+                                                                                     config({false}) {
+        init();
     };
 
-    Matrix(const std::vector<Type> &data, IndexType x_size, IndexType y_size, MatrixConfig config) : data(data),
-                                                                                                     y_size(y_size),
-                                                                                                     x_size(x_size),
-                                                                                                     config(config) {
+    Matrix(const std::vector<ValueType> &data, IndexType x_size, IndexType y_size, MatrixConfig config) : data(data),
+                                                                                                          y_size(y_size),
+                                                                                                          x_size(x_size),
+                                                                                                          x_max(x_size-1),
+                                                                                                          y_max(y_size-1),
+                                                                                                          config(config) {
+        init();
+    };
+
+    ValueType at(IndexType x, IndexType y) const;
+
+    bool inBounds(IndexType x, IndexType y) const;
+
+    const IndexType y_max;
+    const IndexType y_size;
+    const IndexType x_size;
+    const IndexType x_max;
+    const MatrixConfig config{false};
+
+private:
+    std::vector<ValueType> data;
+
+    void init() {
         if (data.empty()) {
             throw std::runtime_error("Empty Matrix not allowed");
         }
@@ -38,18 +62,7 @@ public:
                     " x_size:" + std::to_string(x_size) +
                     " x*y: " + std::to_string(x_size * y_size));
         }
-    };
-
-    Type at(IndexType x, IndexType y) const;
-
-    bool inBounds(IndexType x, IndexType y) const;
-
-    const IndexType y_size;
-    const IndexType x_size;
-    const MatrixConfig config{false};
-
-private:
-    std::vector<Type> data;
+    }
 };
 
 template<typename Type, typename IndexType>
