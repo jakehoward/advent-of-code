@@ -4,6 +4,7 @@
 #include <set>
 #include <iterator>
 #include <algorithm>
+#include <map>
 
 using std::vector;
 using std::string;
@@ -35,7 +36,21 @@ namespace Day12 {
         return parsed;
     }
 
-    int count_arrangements(const PuzzleLine &puzzleLine) {
+    string puzzle_to_string(const PuzzleLine & p) {
+        string nums;
+        for (const auto n: p.nums) {
+            nums += std::to_string(n);
+        }
+        return p.config + nums;
+    }
+
+    // Cleared on each top level run (todo: can I add a struct of string and vector to a map, how is equality done?)
+    std::map<string, long> cache{};
+    long count_arrangements(const PuzzleLine &puzzleLine) {
+        const string pAsString = puzzle_to_string(puzzleLine);
+        if (cache.contains(pAsString)) {
+            return cache.at(pAsString);
+        }
         const auto nums = puzzleLine.nums;
         const auto config = puzzleLine.config;
         if (config.empty()) {
@@ -51,7 +66,7 @@ namespace Day12 {
             return 1;
         }
 
-        int ans{0};
+        long ans{0};
         auto all_springs_regex = std::regex("[\?#]+");
 
         // ex: .??..??...?##. 1,1,3
@@ -92,6 +107,7 @@ namespace Day12 {
             }
         }
 
+        cache.insert({pAsString, ans});
         return ans;
     }
 
@@ -118,6 +134,7 @@ namespace Day12 {
                 }
             }
             PuzzleLine biggerPuzzle = {biggerConfig, biggerNums};
+            cache.clear();
             ans += count_arrangements(biggerPuzzle);
         }
         std::cout << "The answer is: " << ans << std::endl;
@@ -136,6 +153,7 @@ namespace Day12 {
 
 void Days::run12(Utils::Mode mode, int part) {
     std::string input;
+    Day12::cache.clear();
     switch (mode) {
         case Utils::Mode::Example:
             input = Day12::example;
