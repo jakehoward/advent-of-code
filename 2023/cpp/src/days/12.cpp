@@ -56,53 +56,80 @@ namespace Day12 {
 
         // ex: .??..??...?##. 1,1,3
         // if ? => can first num fit? yes: drop num, and consume num + 1 and any (.) from config, recurse; no: consume to next (.) or (?#) and recurse
-        if (config.at(0) == '?' || config.at(0) == '#') {
-            const long n = nums.at(0);
-            bool num_can_fit = (config.length() == n && regex_match(config.substr(0, n), all_springs_regex)) ||
-                               (config.length() > n && regex_match(config.substr(0, n), all_springs_regex) &&
-                                       ((config.at(n + 1) == '?') || (config.at(n + 1) == '.')));
-            if (num_can_fit) {
-                std::string next_config;
-                if (config.length() == n) {
-                    next_config = "";
-                } else if (config.length() == n + 1) {
-                    next_config = ".";
-                } else {
-                    next_config = "." + config.substr(n+1, config.length() - n );
-                }
+        const long n = nums.at(0);
+        bool all_springs = regex_match(config.substr(0, n), all_springs_regex);
+        bool num_can_fit = (config.length() == n && all_springs) ||
+                           (config.length() > n && all_springs &&
+                            ((config.at(n) == '?') || (config.at(n) == '.')));
 
-                auto next_nums = nums;
-                next_nums.erase(next_nums.begin());
+        std::string next_config;
+        vector<long> next_nums{};
+        if (num_can_fit) {
+            if (config.length() == n) {
+                next_config = "";
+            } else if (config.length() == n + 1) {
+                next_config = ".";
+            } else {
+                next_config = "." + config.substr(n + 1, config.length() - n);
+            }
+
+            next_nums = nums;
+            next_nums.erase(next_nums.begin());
+        }
+
+        if (config.at(0) == '.') {
+            ans += count_arrangements({config.substr(1, config.length() - 1), nums});
+        } else if (config.at(0) == '?') {
+            if (num_can_fit) {
                 ans += count_arrangements({next_config, next_nums});
-            } else if (config.at(0) == '#') {
-                // we have to match the num or the pattern is invalid and we can't continue
+            }
+            ans += count_arrangements({config.substr(1, config.length() - 1), nums});
+        } else if (config.at(0) == '#') {
+            if (num_can_fit) {
+                ans += count_arrangements({next_config, next_nums});
+            } else {
                 return 0;
             }
-        } else if (config.at(0) == '#') {
-            return 0;
         }
-        // if # => can first num fit? yes: drop num, and consume num + 1 and any (.) from config, recurse: no: return 0
-
-        // else: drop 1, consume all dots from config and recurse (todo: actually consume all dots)
-        //       (in case the first char is ?, we also take the path where we don't fit the number this time, even if we can)
-        ans += count_arrangements({ config.substr(1, config.length()-1), nums});
 
         return ans;
     }
 
     void part_ii(std::string const &input) {
-        std::cout << "The answer is: " << "TBD!" << std::endl;
+        auto parsed = parse_input(input);
+        int num_copies = 5;
+        long ans{0};
+        for (const PuzzleLine &puzzle: parsed) {
+            auto biggerConfigVec = vector(num_copies, puzzle.config);
+            string biggerConfig;
+            bool first = true;
+            for (const auto &config: biggerConfigVec) {
+                if (first) {
+                    first = false;
+                    biggerConfig += config;
+                    continue;
+                }
+                biggerConfig += ("?" + config);
+            }
+            vector<long> biggerNums(num_copies * puzzle.nums.size());
+            for (int i = 0; i < num_copies; ++i) {
+                for (int n = 0; n < puzzle.nums.size(); ++n) {
+                    biggerNums[(i * puzzle.nums.size()) + n] = puzzle.nums.at(n);
+                }
+            }
+            PuzzleLine biggerPuzzle = {biggerConfig, biggerNums};
+            ans += count_arrangements(biggerPuzzle);
+        }
+        std::cout << "The answer is: " << ans << std::endl;
     }
 
     void part_i(std::string const &input) {
-//        auto parsed = parse_input(input);
-//        long ans{0};
-//        for(const PuzzleLine &puzzle : parsed) {
-//            ans += count_arrangements(puzzle);
-//        }
-        auto ans = count_arrangements({"??.??.##?", {1,1,3}});
-//        auto ans = count_arrangements({"?.", {}});
-//        auto ans = count_arrangements({"?.", {}});
+        auto parsed = parse_input(input);
+        long ans{0};
+        for (const PuzzleLine &puzzle: parsed) {
+            ans += count_arrangements(puzzle);
+        }
+//        auto ans = count_arrangements({"??.??.##?", {1,1,3}});
         std::cout << "The answer is: " << ans << std::endl;
     }
 }
