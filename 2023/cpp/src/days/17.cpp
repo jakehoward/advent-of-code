@@ -13,26 +13,26 @@ namespace Day17 {
 //    std::string example = R"(011112
 //999919
 //999915)";
-std::string example = R"(111111111111
-999999999991
-999999999991
-999999999991
-999999999991)";
+//    std::string example = R"(111111111111
+//999999999991
+//999999999991
+//999999999991
+//999999999991)";
 
 // pt2 => too low
-//    std::string example = R"(2413432311323
-//3215453535623
-//3255245654254
-//3446585845452
-//4546657867536
-//1438598798454
-//4457876987766
-//3637877979653
-//4654967986887
-//4564679986453
-//1224686865563
-//2546548887735
-//4322674655533)";
+    std::string example = R"(2413432311323
+3215453535623
+3255245654254
+3446585845452
+4546657867536
+1438598798454
+4457876987766
+3637877979653
+4654967986887
+4564679986453
+1224686865563
+2546548887735
+4322674655533)";
 
     enum class Dir {
         Up, Down, Left, Right, None
@@ -110,13 +110,28 @@ std::string example = R"(111111111111
         long min_in_same_dir = 4;
         long max_in_same_dir = 10;
 
-        auto nbr_xys = Utils::get_nbrs(node.point.x, node.point.y, heat.x_max, heat.y_max);
         vector<Node> nbr_nodes{};
+        if (node.point.x != 0 && node.point.y != 0 && node.num_in_same_dir < min_in_same_dir) {
+            long new_x = node.point.x;
+            long new_y = node.point.y;
+            if (node.dir == Dir::Right) {
+                ++new_x;
+            } else if (node.dir == Dir::Left) {
+                --new_x;
+            } else if (node.dir == Dir::Up) {
+                --new_y;
+            } else if (node.dir == Dir::Down) {
+                ++new_y;
+            }
+            nbr_nodes.emplace_back(Node{{new_x, new_y}, node.num_in_same_dir + 1, node.dir});
+            return nbr_nodes;
+        }
+        auto nbr_xys = Utils::get_nbrs(node.point.x, node.point.y, heat.x_max, heat.y_max);
         for (const auto &[new_x, new_y]: nbr_xys) {
             if (new_x == 0 && new_y == 0) {
                 continue; // we don't want to go back to first node, even though it hasn't been seen in given direction
             }
-            
+
             std::pair<long, long> delta = {new_x - node.point.x, new_y - node.point.y};
             auto new_dir = delta_to_dir[delta];
             if ((node.dir == Dir::Right && new_dir == Dir::Left) || (node.dir == Dir::Left && new_dir == Dir::Right) ||
@@ -136,29 +151,19 @@ std::string example = R"(111111111111
             // then it's not a valid nbr
             // 0 1 2 3 4 5
             // - - <
+            long distance_to_edge{};
             if (next_node.dir == Dir::Right) {
-                long distance_to_edge = heat.x_max - next_node.point.x;
-                if ((distance_to_edge + next_node.num_in_same_dir) < min_in_same_dir) {
-                    continue;
-                }
+                distance_to_edge = heat.x_max - next_node.point.x;
+            } else if (next_node.dir == Dir::Left) {
+                distance_to_edge = next_node.point.x;
+            } else if (next_node.dir == Dir::Down) {
+                distance_to_edge = heat.y_max - next_node.point.y;
+            } else if (next_node.dir == Dir::Up) {
+                distance_to_edge = next_node.point.y;
             }
-            if (next_node.dir == Dir::Left) {
-                long distance_to_edge = next_node.point.x;
-                if ((distance_to_edge + next_node.num_in_same_dir) < min_in_same_dir) {
-                    continue;
-                }
-            }
-            if (next_node.dir == Dir::Down) {
-                long distance_to_edge = heat.y_max - next_node.point.y;
-                if ((distance_to_edge + next_node.num_in_same_dir) < min_in_same_dir) {
-                    continue;
-                }
-            }
-            if (next_node.dir == Dir::Up) {
-                long distance_to_edge = next_node.point.y;
-                if ((distance_to_edge + next_node.num_in_same_dir) < min_in_same_dir) {
-                    continue;
-                }
+
+            if ((distance_to_edge + next_node.num_in_same_dir) < min_in_same_dir) {
+                continue;
             }
 
             if (visited.contains(next_node)) {
@@ -169,9 +174,12 @@ std::string example = R"(111111111111
         return nbr_nodes;
     }
 
-    enum class Mode { Part1, Part2};
+    enum class Mode {
+        Part1, Part2
+    };
 
-    int get_heat_loss(const Matrix<int, long> &heat, const Point &start, const Point &end, const Mode &mode = Mode::Part1) {
+    int
+    get_heat_loss(const Matrix<int, long> &heat, const Point &start, const Point &end, const Mode &mode = Mode::Part1) {
         std::priority_queue<std::pair<Node, int>, std::vector<std::pair<Node, int>>, decltype(cmp)> next_nodes(cmp);
 
         const Node start_node{start, 0, Dir::None};
