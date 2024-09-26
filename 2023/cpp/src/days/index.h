@@ -43,7 +43,7 @@ namespace Days {
 
     inline void run20(Utils::Mode mode, int part) {};
 
-    inline void run21(Utils::Mode mode, int part) {};
+    void run21(Utils::Mode mode, int part);
 
     inline void run22(Utils::Mode mode, int part) {};
 

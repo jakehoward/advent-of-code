@@ -35,7 +35,7 @@ namespace Day17 {
 4322674655533)";
 
     enum class Dir {
-        Up, Down, Left, Right, None
+        Up, Down, Left, Right
     };
 
     struct Point {
@@ -61,16 +61,7 @@ namespace Day17 {
     auto cmp = [](const std::pair<Node, int> &left, const std::pair<Node, int> &right) {
         return left.second > right.second;
     };
-    // auto [node, cost] = next_nodes.top(); // similar to peek(), doesn't remove
-    // auto [node, cost] = next_nodes.pop(); // removes element
-    // next_nodes.push({node, cost}); // add new node-cost pair
-    // next_nodes.emplace(node, cost); // cheaper push
-    // next_nodes.empty();
-    // next_nodes.size();
 
-    //  if (visited.find(node1) != visited.end()) {
-    //        std::cout << "Node1 has been visited.\n";
-    //    }
     std::map<std::pair<long, long>, Dir> delta_to_dir{{{-1, 0},  Dir::Left},
                                                       {{1,  0},  Dir::Right},
                                                       {{0,  -1}, Dir::Up},
@@ -82,12 +73,8 @@ namespace Day17 {
         auto nbr_xys = Utils::get_nbrs(node.point.x, node.point.y, heat.x_max, heat.y_max);
         vector<Node> nbr_nodes{};
         for (const auto &[new_x, new_y]: nbr_xys) {
-            if (new_x == 0 && new_y == 0) {
-                continue; // we don't want to go back to first node, even though it hasn't been seen in given direction
-            }
-
             std::pair<long, long> delta = {new_x - node.point.x, new_y - node.point.y};
-            auto new_dir = delta_to_dir[delta];
+            auto new_dir = delta_to_dir.at(delta);
             if ((node.dir == Dir::Right && new_dir == Dir::Left) || (node.dir == Dir::Left && new_dir == Dir::Right) ||
                 (node.dir == Dir::Up && new_dir == Dir::Down) || (node.dir == Dir::Down && new_dir == Dir::Up)) {
                 continue; // don't backtrack
@@ -111,6 +98,8 @@ namespace Day17 {
         long max_in_same_dir = 10;
 
         vector<Node> nbr_nodes{};
+
+        // if you haven't done the min in the same direction yet, the only valid nbr is to keep going
         if (node.point.x != 0 && node.point.y != 0 && node.num_in_same_dir < min_in_same_dir) {
             long new_x = node.point.x;
             long new_y = node.point.y;
@@ -126,14 +115,13 @@ namespace Day17 {
             nbr_nodes.emplace_back(Node{{new_x, new_y}, node.num_in_same_dir + 1, node.dir});
             return nbr_nodes;
         }
+
+        // Otherwise, you can keep going or turn 90 deg (edges allowing)
         auto nbr_xys = Utils::get_nbrs(node.point.x, node.point.y, heat.x_max, heat.y_max);
         for (const auto &[new_x, new_y]: nbr_xys) {
-            if (new_x == 0 && new_y == 0) {
-                continue; // we don't want to go back to first node, even though it hasn't been seen in given direction
-            }
-
             std::pair<long, long> delta = {new_x - node.point.x, new_y - node.point.y};
-            auto new_dir = delta_to_dir[delta];
+            auto new_dir = delta_to_dir.at(delta);
+
             if ((node.dir == Dir::Right && new_dir == Dir::Left) || (node.dir == Dir::Left && new_dir == Dir::Right) ||
                 (node.dir == Dir::Up && new_dir == Dir::Down) || (node.dir == Dir::Down && new_dir == Dir::Up)) {
                 continue; // don't backtrack
@@ -182,7 +170,7 @@ namespace Day17 {
     get_heat_loss(const Matrix<int, long> &heat, const Point &start, const Point &end, const Mode &mode = Mode::Part1) {
         std::priority_queue<std::pair<Node, int>, std::vector<std::pair<Node, int>>, decltype(cmp)> next_nodes(cmp);
 
-        const Node start_node{start, 0, Dir::None};
+        const Node start_node{start, 0, Dir::Down};
         next_nodes.emplace(start_node, 0);
 
         std::set<Node> visited{};
