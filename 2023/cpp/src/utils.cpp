@@ -1,4 +1,5 @@
 #include <utility>
+#include <algorithm>
 #include "utils.h"
 
 std::string Utils::readFile(std::string const &path) {
