@@ -1,3 +1,4 @@
+#include "17.h"
 #include "index.h"
 #include "utils.h"
 #include "matrix.h"
@@ -218,6 +219,10 @@ namespace Day17 {
         auto city = Utils::buildIntMatrix(input);
         auto ans = get_heat_loss(city, Point{0, 0}, Point{city.x_size - 1, city.y_size - 1}, Mode::Part2);
         std::cout << "The answer is: " << ans << std::endl;
+    }
+
+    int test_test() {
+        return 12;
     }
 
     void part_i(std::string const &input) {
