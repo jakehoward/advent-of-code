@@ -10,6 +10,9 @@ class Matrix:
     def at(self, x, y):
         return self._data[y * self._x_size + x]
 
+    def in_bounds(self, x, y):
+        return 0 <= x and  x < self._x_size and 0 <= y and y < self._y_size
+
 
 def make_matrix(input, as_ints=False):
     rows = input.strip().split('\n')

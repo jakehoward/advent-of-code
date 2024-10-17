@@ -29,4 +29,12 @@ class TestMatrix:
         assert(m2.at(2, 1) == 7)
         assert(m2.at(3, 1) == 8)
 
-
+    def test_matrix_in_bounds(self):
+        assert(m.in_bounds(-1, 0) == False)
+        assert(m.in_bounds(0, -1) == False)
+        assert(m.in_bounds(3, 3) == False)
+        assert(m.in_bounds(2, 3) == False)
+        assert(m.in_bounds(3, 2) == False)
+        for i in range(3):
+            for j in range(3):
+                assert(m.in_bounds(i, j) == True)
