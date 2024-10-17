@@ -1,5 +1,6 @@
 import pytest
 
+from utils.directions import Dir
 from utils.matrix import make_matrix
 
 m = make_matrix('123\n456\n789', True)
@@ -38,3 +39,48 @@ class TestMatrix:
         for i in range(3):
             for j in range(3):
                 assert(m.in_bounds(i, j) == True)
+
+class TestMatrixRepeat:
+    def test_matrix_at_tile_left(self):
+        m = make_matrix('12\n34', True, [Dir.Left])
+        assert(m.at(-1, 0) == 2)
+        assert(m.at(-2, 0) == 1)
+        assert(m.at(-1, 1) == 4)
+        assert(m.at(-2, 1) == 3)
+        assert (m.at(-3, 0) == 2)
+        assert (m.at(-4, 0) == 1)
+        assert (m.at(-3, 1) == 4)
+        assert (m.at(-4, 1) == 3)
+
+    def test_matrix_at_tile_right(self):
+        m = make_matrix('12\n34', True, [Dir.Right])
+        assert(m.at(2, 0) == 1)
+        assert(m.at(3, 0) == 2)
+        assert(m.at(2, 1) == 3)
+        assert(m.at(3, 1) == 4)
+        assert (m.at(4, 0) == 1)
+        assert (m.at(5, 0) == 2)
+        assert (m.at(4, 1) == 3)
+        assert (m.at(5, 1) == 4)
+
+    def test_matrix_at_tile_up(self):
+        m = make_matrix('12\n34', True, [Dir.Up])
+        assert(m.at(0, -1) == 3)
+        assert(m.at(0, -2) == 1)
+        assert(m.at(1, -1) == 4)
+        assert(m.at(1, -2) == 2)
+        assert (m.at(0, -3) == 3)
+        assert (m.at(0, -4) == 1)
+        assert (m.at(1, -3) == 4)
+        assert (m.at(1, -4) == 2)
+
+    def test_matrix_at_tile_down(self):
+        m = make_matrix('12\n34', True, [Dir.Down])
+        assert(m.at(0, 2) == 1)
+        assert(m.at(0, 3) == 3)
+        assert(m.at(1, 2) == 2)
+        assert(m.at(1, 3) == 4)
+        assert (m.at(0, 4) == 1)
+        assert (m.at(0, 5) == 3)
+        assert (m.at(1, 4) == 2)
+        assert (m.at(1, 5) == 4)
