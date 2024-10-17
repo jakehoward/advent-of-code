@@ -7,5 +7,4 @@ class Dir(Enum):
     Right = 4
     Diagonals = 5
 
-all_dirs = [Dir.Up, Dir.Down, Dir.Left, Dir.Right, Dir.Diagonals]
-cardinal_dirs = [Dir.Up, Dir.Down, Dir.Left, Dir.Right]
+all_dirs = [Dir.Up, Dir.Down, Dir.Left, Dir.Right]
