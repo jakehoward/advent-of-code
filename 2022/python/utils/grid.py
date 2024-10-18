@@ -1,7 +1,7 @@
 from utils.directions import Dir
 
 
-class Matrix:
+class Grid:
     def __init__(self, data, x_size, y_size, tile_directions=[]):
         self._data = data
         self._x_size = x_size
@@ -24,7 +24,7 @@ class Matrix:
         return 0 <= x and x < self._x_size and 0 <= y and y < self._y_size
 
 
-def make_matrix(input, as_ints=False, tile_directions=[]):
+def make_grid(input, as_ints=False, tile_directions=[]):
     rows = input.strip().split('\n')
     y_size = len(rows)
     x_size = -1
@@ -32,10 +32,10 @@ def make_matrix(input, as_ints=False, tile_directions=[]):
     for row in rows:
         if x_size != -1:
             if x_size != len(row):
-                raise Exception("Cannot make matrix with irregular row length")
+                raise Exception("Cannot make grid with irregular row length")
         else:
             x_size = len(row)
         for i in list(row):
             data.append(int(i) if as_ints else i)
 
-    return Matrix(data, x_size, y_size, tile_directions)
+    return Grid(data, x_size, y_size, tile_directions)
