@@ -7,6 +7,20 @@ class Grid:
         self._x_size = x_size
         self._y_size = y_size
         self._tile_directions = tile_directions
+        # design decision: give the "nominal" max, even if the grid tiles
+        self.x_max = x_size - 1
+        self.y_max = y_size - 1
+
+    def get_nbr_xys(self, x, y, include_diagonals=False):
+        deltas = ((0, -1), (0, 1), (-1, 0), (1, 0))
+        if include_diagonals:
+            deltas += ((1, 1), (-1, -1), (-1, 1), (1, -1))
+        return {(x + d[0], y + d[1]) for d in deltas if self.in_bounds(x + d[0], y + d[1])}
+
+    def get_nbrs(self, x, y, include_diagonals=False):
+        # up, down, left, right
+        nbr_xys = self.get_nbr_xys(x, y, include_diagonals)
+        return [self.at(nxy[0], nxy[1]) for nxy in nbr_xys]
 
     def at(self, x, y):
         # Even though we always do co-ord % size, we only
@@ -17,11 +31,19 @@ class Grid:
         if (Dir.Up in self._tile_directions and y < 0) or (Dir.Down in self._tile_directions and y > 0):
             y = y % self._y_size
 
-        assert self.in_bounds(x, y), f"({x},{y}) out of bounds of ({self._x_size - 1},{self._y_size - 1})"
+        assert self.in_bounds_no_tile(x, y), f"({x},{y}) out of bounds of ({self._x_size - 1},{self._y_size - 1})"
         return self._data[y * self._x_size + x]
 
-    def in_bounds(self, x, y):
+    def in_bounds_no_tile(self, x, y):
         return 0 <= x and x < self._x_size and 0 <= y and y < self._y_size
+
+    def in_bounds(self, x, y):
+        if (Dir.Left in self._tile_directions and x < 0) or (Dir.Right in self._tile_directions and x > 0):
+            x = x % self._x_size
+        if (Dir.Up in self._tile_directions and y < 0) or (Dir.Down in self._tile_directions and y > 0):
+            y = y % self._y_size
+
+        return self.in_bounds_no_tile(x, y)
 
 
 def make_grid(input, as_ints=False, tile_directions=[]):
