@@ -120,3 +120,8 @@ class TestMatrixRepeat:
         assert (m.at(5, 2) == 2)
         assert (m.at(4, 3) == 3)
         assert (m.at(5, 3) == 4)
+
+    def test_matrix_at_out_of_bounds_raises(self):
+        m = make_matrix('12\n34', True)
+        with pytest.raises(Exception):
+            m.at(-1, 0)
