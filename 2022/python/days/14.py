@@ -96,7 +96,47 @@ def part1(input):
     print(f'Pt1::ans: {answer}')
 
 def part2(input):
-    answer = '...'
+    sand_at_rest_xys = set()
+    rock_xys = build_rock_xys(input)
+    # print(rock_xys)
+    max_rock_y = max(map(lambda xy: xy[1], rock_xys))
+
+    def in_rock_xys(xy):
+        return xy in rock_xys or xy[1] == max_rock_y + 2
+
+    max_iterations = int(1e7)
+    num_iterations = 0
+    current_sand_xy = sand_source_xy
+    while num_iterations < max_iterations:
+        num_iterations += 1
+
+        one_down_xy = down(current_sand_xy)
+        if not in_rock_xys(one_down_xy) and one_down_xy not in sand_at_rest_xys:
+            # Must be air, continue
+            current_sand_xy = one_down_xy
+            continue
+
+        # below left is blocked
+        if below_left(current_sand_xy) in sand_at_rest_xys or in_rock_xys(below_left(current_sand_xy)):
+            # below right is blocked
+            if below_right(current_sand_xy) in sand_at_rest_xys or in_rock_xys(below_right(current_sand_xy)):
+                sand_at_rest_xys.add(current_sand_xy)
+                if current_sand_xy == sand_source_xy:
+                    break
+                else:
+                    current_sand_xy = sand_source_xy
+                    continue
+            else:
+                current_sand_xy = below_right(current_sand_xy)
+                continue
+        else:
+            current_sand_xy = below_left(current_sand_xy)
+            continue
+
+    if num_iterations == max_iterations:
+        raise Exception(f"Num iterations reached max iterations {max_iterations}")
+
+    answer = len(sand_at_rest_xys)
     print(f'Pt2::ans: {answer}')
 
 def run():
@@ -108,11 +148,11 @@ def run():
     with timer():
         part1(input)
 
-    # with timer():
-    #     part2(example)
+    with timer():
+        part2(example)
 
-    # with timer():
-    #     part2(input)
+    with timer():
+        part2(input)
 
 if __name__ == "__main__":
     run()
