@@ -14,3 +14,6 @@ pom.xml.asc
 .cpcache/
 
 2023/resources/*.txt
+.idea/
+2024/cpp20/input/
+2024/cpp23/input/
