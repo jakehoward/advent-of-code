@@ -17,7 +17,7 @@ if(APPLE)
 endif()
 
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++ -fmodules")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
 
 add_library(utils INTERFACE)
 target_include_directories(utils INTERFACE include)

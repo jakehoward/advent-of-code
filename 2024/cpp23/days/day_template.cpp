@@ -1,24 +1,8 @@
-/* You can only move Up/Down/Left/Right
- * Part i:
- * File at ./input/day_0.txt
- *
- * Starting at the only opening at the top of the woods,
- * how many steps does it take to get to the bottom?
- *
- * Ans: 6 (D, R, D, D, L, D)
- */
-
-
-
 #include <string>
 #include <utils/misc.hpp>
 
-std::string example(R"(
-** **
-**  *
-*** *
-**  *
-** **)");
+std::string example(R"(** *
+** *)");
 
 void part_i(const std::string &input) {
     std::println("{}", "Part i - Not implemented");
