@@ -13,13 +13,21 @@ void part_ii(const std::string &input) {
 }
 
 int main() {
-    Utils::with_timer([]() {
-        auto lines = Utils::read_input(0);
+    auto input = Utils::read_input(0);
 
+    Utils::with_timer([]() {
         part_i(example);
-//        part_i(lines);
-//
-//        part_ii(example);
-//        part_ii(lines);
     });
+
+//    Utils::with_timer([]() {
+//        part_i(input);
+//    });
+
+//    Utils::with_timer([]() {
+//        part_ii(example);
+//    });
+
+//    Utils::with_timer([]() {
+//        part_ii(input);
+//    });
 }

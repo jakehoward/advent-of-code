@@ -1,4 +1,4 @@
-import time
+from timeit import default_timer
 from contextlib import contextmanager
 
 def partition(chunk_size, step_size, iterable):
@@ -13,7 +13,7 @@ def partition(chunk_size, step_size, iterable):
 
 @contextmanager
 def timer():
-    start = time.time()
+    start = default_timer()
     yield
-    end = time.time()
-    print(f"Elapsed time: {(end - start) * 1000:.2f} ms")
+    end = default_timer()
+    print(f"Elapsed time: {(end - start) * 1000:.3f} ms")
