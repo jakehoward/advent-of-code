@@ -16,4 +16,8 @@ def timer():
     start = default_timer()
     yield
     end = default_timer()
-    print(f"Elapsed time: {(end - start) * 1000:.3f} ms")
+    duration_seconds = (end - start)
+    if duration_seconds * 1000 < 5:
+        print(f"Elapsed time: {duration_seconds * 1e6:.0f} microseconds")
+    else:
+        print(f"Elapsed time: {duration_seconds * 1e3:.0f} ms")
