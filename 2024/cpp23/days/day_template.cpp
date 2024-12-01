@@ -5,11 +5,11 @@ std::string example(R"(** *
 ** *)");
 
 void part_i(const std::string &input) {
-    std::println("{}", "Part i - Not implemented");
+    std::println("Part i: {}", "Not implemented");
 }
 
 void part_ii(const std::string &input) {
-    std::println("{}", "Part ii - Not implemented");
+    std::println("Part ii: {}", "Not implemented");
 }
 
 int main() {
@@ -19,7 +19,7 @@ int main() {
         part_i(example);
     });
 
-//    Utils::with_timer([]() {
+//    Utils::with_timer([&input]() {
 //        part_i(input);
 //    });
 
@@ -27,7 +27,7 @@ int main() {
 //        part_ii(example);
 //    });
 
-//    Utils::with_timer([]() {
+//    Utils::with_timer([&input]() {
 //        part_ii(input);
 //    });
 }
