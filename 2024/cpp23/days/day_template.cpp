@@ -14,20 +14,21 @@ void part_ii(const std::string &input) {
 
 int main() {
     auto input = Utils::read_input(0);
+//    Utils::with_timer("Parse input",  [&input](){ parse_input(input); });
 
-    Utils::with_timer([]() {
+    Utils::with_timer("Part i (example)", []() {
         part_i(example);
     });
 
-//    Utils::with_timer([&input]() {
+//    Utils::with_timer("Part i (input)", [&input]() {
 //        part_i(input);
 //    });
 
-//    Utils::with_timer([]() {
+//    Utils::with_timer("Part ii (example)", []() {
 //        part_ii(example);
 //    });
 
-//    Utils::with_timer([&input]() {
+//    Utils::with_timer("Part ii (input)", [&input]() {
 //        part_ii(input);
 //    });
 }
