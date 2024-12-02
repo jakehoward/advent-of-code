@@ -14,7 +14,7 @@ def part2(input):
     print(f'Pt2::ans: {answer}')
 
 def run():
-    day = Path(__file__).name.split('.')[0]
+    day = Path(__file__).name.split('.')[0].split('_')[-1]
     input = read_input(day)
     with timer():
         part1(example)

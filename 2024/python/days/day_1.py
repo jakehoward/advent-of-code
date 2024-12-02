@@ -2,7 +2,6 @@ from pathlib import Path
 
 from utils.misc import timer
 from utils.read import read_input
-import re
 
 example = """3   4
 4   3
@@ -40,7 +39,7 @@ def part2(input):
 
 
 def run():
-    day = Path(__file__).name.split('.')[0]
+    day = Path(__file__).name.split('.')[0].split('_')[-1]
     input = read_input(day)
     with timer():
         parse_input(input)

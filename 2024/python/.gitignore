@@ -1,3 +1,4 @@
 input/
 .venv/
 .idea/
+__pycache__/
