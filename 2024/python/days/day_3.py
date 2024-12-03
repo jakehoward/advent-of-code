@@ -29,6 +29,36 @@ def part2(input):
         i += 1
     print(f'Pt2::ans: {answer}')
 
+def part2_fast(input):
+    pos = 0
+    on = True
+    input_len = len(input)
+    answer = 0
+    while pos < input_len:
+        if input[pos:pos +4] == "do()":
+            on = True
+            pos += 4
+        elif input[pos:pos + 7] == "don't()":
+            on = False
+            pos += 7
+        elif on:
+            if input[pos:].startswith("mul("):
+                pos += 4
+                next_comma_idx = input[pos:].find(',')
+                next_paren_idx = input[pos:].find(')')
+                mul_len = next_paren_idx
+                if next_comma_idx != -1 and next_paren_idx != -1 and next_comma_idx >= 1 and next_paren_idx > next_comma_idx and 3 <= mul_len and mul_len <= 7:
+                    first = input[pos:pos + next_comma_idx]
+                    second = input[pos + next_comma_idx + 1: pos + next_paren_idx]
+                    if first.isdigit() and second.isdigit():
+                        answer += int(first) * int(second)
+                        pos += mul_len
+            else:
+                pos += 1
+        else:
+            pos += 1
+    print(f'Pt2::ans: {answer}')
+
 def run():
     day = Path(__file__).name.split('.')[0].split('_')[-1]
     input = read_input(day)
@@ -43,6 +73,9 @@ def run():
 
     with timer():
         part2(input)
+
+    with timer():
+        part2_fast(input)
 
 if __name__ == "__main__":
     run()
