@@ -4,34 +4,29 @@ from utils.misc import timer
 from utils.read import read_input
 import re
 
-# example = """xmul(2,4)%&mul[3,7]!@^do_not_mul(5,5)+mul(32,64]then(mul(11,8)mul(8,5))"""
-# example_2 = """xmul(2,4)&mul[3,7]!^don't()_mul(5,5)+mul(32,64](mul(11,8)undo()?mul(8,5))"""
-# foo = re.findall(r"mul\(\d{0,3},\d{0,3}\)", example)
-# next(re.finditer(r'mul\((\d{0,3}),(\d{0,3})\)', example_2)).start()
-# example[len(example):]
+example = """xmul(2,4)%&mul[3,7]!@^do_not_mul(5,5)+mul(32,64]then(mul(11,8)mul(8,5))"""
+example_2 = """xmul(2,4)&mul[3,7]!^don't()_mul(5,5)+mul(32,64](mul(11,8)undo()?mul(8,5))"""
+
+pattern = re.compile(r'mul\((\d{0,3}),(\d{0,3})\)')
 
 def part1(input):
-    pattern = re.compile(r'mul\((\d{0,3}),(\d{0,3})\)')
     answer = sum([int(a) * int(b) for a, b in re.findall(pattern, input)])
     print(f'Pt1::ans: {answer}')
 
 def part2(input):
-    pattern = re.compile(r'mul\((\d{0,3}),(\d{0,3})\)')
     i = 0
-    muls = []
+    answer = 0
     on = True
-    while (i < len(input)):
+    while i < len(input):
         if input[i:].startswith('do()'):
             on = True
         elif input[i:].startswith("don't()"):
             on = False
-        else:
-            if on:
-                match = pattern.match(input[i:])
-                if match:
-                    muls.append(int(match.group(1)) * int(match.group(2)))
+        elif on:
+            match = pattern.match(input[i:])
+            if match:
+                answer += int(match.group(1)) * int(match.group(2))
         i += 1
-    answer = sum(muls)
     print(f'Pt2::ans: {answer}')
 
 def run():
@@ -51,3 +46,12 @@ def run():
 
 if __name__ == "__main__":
     run()
+
+# Pt1::ans: 161
+# Elapsed time: 17 microseconds
+# Pt1::ans: 170068701
+# Elapsed time: 231 microseconds
+# Pt2::ans: 48
+# Elapsed time: 24 microseconds
+# Pt2::ans: 78683433
+# Elapsed time: 12 ms
