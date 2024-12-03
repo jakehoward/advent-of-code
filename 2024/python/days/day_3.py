@@ -30,33 +30,27 @@ def part2(input):
         i += 1
     print(f'Pt2::ans: {answer}')
 
-def part2_fast(input_str):
-    input = np.array(list(input_str))
+def part2_fast(input):
     pos = 0
     on = True
     input_len = len(input)
     answer = 0
-    do_array = np.array(list("do()"))
-    dont_array = np.array(list("don't()"))
-    mul_array = np.array(list("mul("))
     while pos < input_len:
-        if input[pos:pos +4].size == 4 and np.all(input[pos:pos + 4] == do_array):
+        if input[pos:pos +4] == "do()":
             on = True
             pos += 4
-        elif input[pos: pos + 7].size == 7 and np.all(input[pos:pos + 7] == dont_array):
+        elif input[pos:pos + 7] == "don't()":
             on = False
             pos += 7
         elif on:
-            if input[pos: pos + 4].size == 4 and np.all(input[pos:pos + 4] == mul_array):
+            if input[pos:].startswith("mul("):
                 pos += 4
-                comma_matches = np.where(input[pos:] == ',')
-                next_comma_idx =  comma_matches[0][0] if len(comma_matches[0]) else -1
-                paren_matches = np.where(input[pos:] == ')')
-                next_paren_idx = paren_matches[0][0] if len(paren_matches[0]) else -1
+                next_comma_idx = input[pos:].find(',')
+                next_paren_idx = input[pos:].find(')')
                 mul_len = next_paren_idx
                 if next_comma_idx != -1 and next_paren_idx != -1 and next_comma_idx >= 1 and next_paren_idx > next_comma_idx and 3 <= mul_len and mul_len <= 7:
-                    first = ''.join(input[pos:pos + next_comma_idx])
-                    second = ''.join(input[pos + next_comma_idx + 1: pos + next_paren_idx])
+                    first = input[pos:pos + next_comma_idx]
+                    second = input[pos + next_comma_idx + 1: pos + next_paren_idx]
                     if first.isdigit() and second.isdigit():
                         answer += int(first) * int(second)
                         pos += mul_len
