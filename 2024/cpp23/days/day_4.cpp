@@ -29,14 +29,16 @@ void part_ii(const std::string &input) {
     std::array<size_t, 5> idxs_to_check{0, 2, block_len + 1, 2 * block_len, 2 * block_len + 2};
     int answer = 0;
     while (idxs_to_check[4] < input.length()) {
-        for (const auto &mas: mases_to_check) {
-            if (mas[0] == input[idxs_to_check[0]] &&
-                mas[1] == input[idxs_to_check[1]] &&
-                mas[2] == input[idxs_to_check[2]] &&
-                mas[3] == input[idxs_to_check[3]] &&
-                mas[4] == input[idxs_to_check[4]]
-            ) {
-                answer += 1;
+        if (input[idxs_to_check[2]] == 'A') [[unlikely]] {
+            for (const auto &mas: mases_to_check) {
+                if (mas[0] == input[idxs_to_check[0]] &&
+                    mas[1] == input[idxs_to_check[1]] &&
+//                    mas[2] == input[idxs_to_check[2]] &&
+                    mas[3] == input[idxs_to_check[3]] &&
+                    mas[4] == input[idxs_to_check[4]]
+                        ) [[unlikely]] {
+                    answer += 1;
+                }
             }
         }
         bool go_to_next_line = (idxs_to_check[1] % block_len) == (block_len - 2);
