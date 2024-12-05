@@ -41,13 +41,15 @@ void part_ii(const std::string &input) {
                 }
             }
         }
-        bool go_to_next_line = (idxs_to_check[1] % block_len) == (block_len - 2);
+//
+        // Branch-less way to choose how many to add.
+        // If should go to next line, add one (bool -> int)
+        // Replaces:
+        // bool go_to_next_line = (idxs_to_check[1] % block_len) == (block_len - 2);
+        // if (go_to_next_line) ... in loop
+        int num_to_add = 1 + ((idxs_to_check[1] % block_len) == (block_len - 2));
         for (auto &n: idxs_to_check) {
-            if (go_to_next_line) {
-                n += 2;
-            } else {
-                n +=1;
-            }
+            n += num_to_add;
         }
     }
 
