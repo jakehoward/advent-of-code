@@ -155,7 +155,6 @@ bool is_loop(const StringGrid &grid, const std::pair<uint32_t, uint32_t> &start_
         next_pos[0] = pos[0] + move[0];
         next_pos[1] = pos[1] + move[1];
 
-//        fast_move(pos, dir, next_pos);
         if (grid.in_bounds(next_pos[0], next_pos[1]) &&
             (grid.at(next_pos[0], next_pos[1]) == '#' ||
              (next_pos[0] == obstacle_pos.first && next_pos[1] == obstacle_pos.second))) {
@@ -204,6 +203,7 @@ void part_ii(const std::string &input) {
     }
     std::println("Part i: {}", total);
 
+    // Single threaded version
 //    std::unordered_set<std::pair<uint32_t, uint32_t>, PairHash> loop_locations;
 //    for (const auto &visited_location: visited_locations) {
 //        if (is_loop(grid, guard_start, Dir::Up, visited_location)) {
