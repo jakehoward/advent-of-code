@@ -17,16 +17,24 @@ def run():
     day = Path(__file__).name.split('.')[0].split('_')[-1]
     input = read_input(day)
     with timer():
-        print(f'Pt1(example)::ans: {part1(example)}')
+        ans = part1(example)
+        # assert ans == None
+        print(f'Pt1(example)::ans: {ans}')
 
     # with timer():
-    #     print(f'Pt1::ans: {part1(input)}')
+    #     ans = part1(input)
+    #     assert ans == None
+    #     print(f'Pt1::ans: {ans}')
 
     # with timer():
-    #     print(f'Pt2(example)::ans: {part2(example)}')
+    #     ans = part2(example)
+    #     assert ans == None
+    #     print(f'Pt2_v2(example)::ans: {ans}')
 
     # with timer():
-    #     print(f'Pt2::ans: {part2(input)}')
+    #     ans = part2(input)
+    #     assert ans == None
+    #     print(f'Pt2::ans: {ans}')
 
 
 if __name__ == "__main__":

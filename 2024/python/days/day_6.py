@@ -20,10 +20,8 @@ right = (1, 0)
 down = (0, 1)
 left = (-1, 0)
 
-
 def add(p, p2):
     return p[0] + p2[0], p[1] + p2[1]
-
 
 def next_direction(direction):
     if direction == up:
@@ -35,13 +33,9 @@ def next_direction(direction):
     if direction == left:
         return up
 
-
-def part1(input):
-    grid = make_grid(input)
-    guard_start_idx = grid._data.index('^')
-    guard_start = (guard_start_idx % grid._x_size, guard_start_idx // grid._y_size)
+def find_guard_positions(grid, guard_start, start_direction):
     pos = guard_start
-    direction = up
+    direction = start_direction
     seen = set()
     while grid.in_bounds(pos[0], pos[1]):
         seen.add(pos)
@@ -52,6 +46,15 @@ def part1(input):
             pos = next_pos
     return seen
 
+def find_guard_start(grid):
+    guard_start_idx = grid._data.index('^')
+    guard_start = (guard_start_idx % grid._x_size, guard_start_idx // grid._y_size)
+    return guard_start
+
+def part1(input):
+    grid = make_grid(input)
+    guard_start = find_guard_start(grid)
+    return find_guard_positions(grid, guard_start, up)
 
 def is_loop(grid, start_pos, start_direction, synthetic_obstacle_point):
     seen = set()
@@ -76,36 +79,9 @@ def is_loop(grid, start_pos, start_direction, synthetic_obstacle_point):
 
 def part2(input):
     grid = make_grid(input)
-    print('Grid size', grid._x_size, "x", grid._y_size)
-    guard_start_idx = grid._data.index('^')
-    guard_start = (guard_start_idx % grid._x_size, guard_start_idx // grid._y_size)
-    pos = guard_start
-    direction = up
-    # Done: Check coords of obstacle in example are coords found by algo (they are)
-    # todo: consider if you're allowed to bounce of two hashes immediately doing a 180 turn?
-    #       done: Lowers number of loops (still too high)
-    # todo: removing the next_pos == guard_start constraint doesn't change the answer, is this suspicious?
-    # done: changing the is_loop to count seen positions twice (still same output)
-    loop_obstacles = set()
-    while grid.in_bounds_p(pos):
-        next_pos = add(pos, direction)
-        if grid.in_bounds_p(next_pos):
-            if grid.at_p(next_pos) == '#':
-                direction = next_direction(direction)
-                continue
-            elif next_pos != guard_start:
-                if next_pos not in loop_obstacles and is_loop(grid, pos, direction, next_pos):
-                    loop_obstacles.add(next_pos)
-        pos = next_pos
-    answer = len(loop_obstacles)
-    return answer
-
-def part2_v2(input):
-    visited_locations = part1(input)
+    guard_start = find_guard_start(grid)
+    visited_locations = find_guard_positions(grid, guard_start, up)
     loop_pos = set()
-    grid = make_grid(input)
-    guard_start_idx = grid._data.index('^')
-    guard_start = (guard_start_idx % grid._x_size, guard_start_idx // grid._y_size)
     for visited_location in visited_locations:
         if is_loop(grid, guard_start, up, visited_location):
             loop_pos.add(visited_location)
@@ -115,18 +91,24 @@ def run():
     day = Path(__file__).name.split('.')[0].split('_')[-1]
     input = read_input(day)
     with timer():
-        print(f'Pt1(example)::ans: {len(part1(example))}')
+        ans = len(part1(example))
+        assert ans == 41
+        print(f'Pt1(example)::ans: {ans}')
 
     with timer():
-        print(f'Pt1::ans: {len(part1(input))}')
+        ans = len(part1(input))
+        assert ans == 4789
+        print(f'Pt1::ans: {ans}')
 
     with timer():
-        print(f'Pt2_v2(example)::ans: {part2_v2(example)}')
-        print(f'Pt2(example)::ans: {part2_v2(example)}')
+        ans = part2(example)
+        assert ans == 6
+        print(f'Pt2_v2(example)::ans: {ans}')
 
     with timer():
-        print(f'Pt2_v2::ans: {part2_v2(input)}')
-        print(f'Pt2::ans: {part2(input)}')
+        ans = part2(input)
+        assert ans == 1304
+        print(f'Pt2::ans: {ans}')
 
 
 if __name__ == "__main__":
