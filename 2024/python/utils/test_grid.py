@@ -52,6 +52,29 @@ class TestGrid:
 
 
 class TestGridTiling:
+    def test_grid_in_bounds_manual(self):
+        g = make_grid('12\n34', tile_directions=[])
+        assert (g.in_bounds_p((0, 0)) == True)
+        assert (g.in_bounds_p((1, 0)) == True)
+        assert (g.in_bounds_p((0, 1)) == True)
+        assert (g.in_bounds_p((1, 1)) == True)
+
+        assert (g.in_bounds_p((-1, -1)) == False)
+        assert (g.in_bounds_p((0, -1)) == False)
+        assert (g.in_bounds_p((1, -1)) == False)
+        assert (g.in_bounds_p((2, -1)) == False)
+
+        assert (g.in_bounds_p((2, 0)) == False)
+        assert (g.in_bounds_p((2, 1)) == False)
+        assert (g.in_bounds_p((2, 2)) == False)
+
+        assert (g.in_bounds_p((1, 2)) == False)
+        assert (g.in_bounds_p((0, 2)) == False)
+        assert (g.in_bounds_p((-1, 2)) == False)
+
+        assert (g.in_bounds_p((-1, 1)) == False)
+        assert (g.in_bounds_p((-1, 0)) == False)
+
     def test_grid_in_bounds(self):
         g = make_grid('12\n34', tile_directions=all_dirs)
         for i in range(-10, 10):
