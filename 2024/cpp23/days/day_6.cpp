@@ -1,6 +1,9 @@
 #include <string>
 #include <unordered_set>
 #include <utility>
+#include <vector>
+#include <thread>
+#include <mutex>
 #include <utils/misc.hpp>
 
 std::string example(R"(....#.....
@@ -140,12 +143,34 @@ void part_ii(const std::string &input) {
 
     auto visited_locations = get_visited_locations(grid, guard_start, Dir::Up);
 
-    std::unordered_set<std::pair<int, int>, PairHash> loop_locations{};
+    int num = 0;
+    int num_batches = 3;
+    std::vector<std::unordered_set<std::pair<int, int>, PairHash>> batches(num_batches);
     for (const auto &visited_location: visited_locations) {
-        if (is_loop(grid, guard_start, Dir::Up, visited_location)) {
-            loop_locations.insert(visited_location);
-        }
+        batches.at(num % num_batches).insert(visited_location);
+        num += 1;
     }
+
+    std::unordered_set<std::pair<int, int>, PairHash> loop_locations{};
+    std::mutex loop_locations_mutex;
+
+    std::vector<std::thread> threads;
+    threads.reserve(num_batches);
+    for (const auto &batch: batches) {
+        threads.emplace_back([&loop_locations, &batch, &grid, &guard_start, &loop_locations_mutex]() {
+            for (const auto &visited_location: batch) {
+                if (is_loop(grid, guard_start, Dir::Up, visited_location)) {
+                    std::lock_guard<std::mutex> lock(loop_locations_mutex);
+                    loop_locations.insert(visited_location);
+                }
+            }
+        });
+    }
+
+    for (auto &t: threads) {
+        t.join();
+    }
+
     std::println("Part i: {}", loop_locations.size());
 }
 
