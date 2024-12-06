@@ -99,6 +99,25 @@ std::pair<uint32_t, uint32_t> move(const std::pair<uint32_t, uint32_t> &p, Dir d
         return {p.first + 1, p.second};
 }
 
+void fast_move(const std::array<uint32_t, 2> &p, Dir d, std::array<uint32_t, 2> &dest) {
+    if (d == Dir::Up) {
+        dest[0] = p[0];
+        dest[1] = p[1] - 1;
+    }
+    if (d == Dir::Down) {
+        dest[0] = p[0];
+        dest[1] = p[1] + 1;
+    }
+    if (d == Dir::Left) {
+        dest[0] = p[0] - 1;
+        dest[1] = p[1];
+    }
+    if (d == Dir::Right) {
+        dest[0] = p[0] + 1;
+        dest[1] = p[1];
+    }
+}
+
 std::unordered_set<std::pair<uint32_t, uint32_t>, PairHash>
 get_visited_locations(const StringGrid &grid, const std::pair<uint32_t, uint32_t> &start, const Dir &start_dir) {
     auto pos = start;
@@ -120,21 +139,25 @@ bool is_loop(const StringGrid &grid, const std::pair<uint32_t, uint32_t> &start_
              const std::pair<uint32_t, uint32_t> &obstacle_pos) {
     std::array<std::unordered_set<uint64_t>, 4> seen{};
 
+    std::array<uint32_t, 2> pos{start_pos.first, start_pos.second};
+    std::array<uint32_t, 2> next_pos{0, 0};
+
     auto dir = start_direction;
-    auto pos = start_pos;
-    while (grid.in_bounds(pos.first, pos.second)) {
-        uint64_t seen_check = (static_cast<uint64_t>(pos.first) << 32) | static_cast<uint64_t>(pos.second);
+    while (grid.in_bounds(pos[0], pos[1])) {
+        uint64_t seen_check = (static_cast<uint64_t>(pos[0]) << 32) | static_cast<uint64_t>(pos[1]);
         const auto dir_idx = static_cast<size_t>(dir);
         if (seen[dir_idx].contains(seen_check)) {
             return true;
         }
         seen[dir_idx].insert(seen_check);
 
-        auto next_pos = move(pos, dir);
-        if (grid.in_bounds(next_pos.first, next_pos.second) && (grid.at(next_pos.first, next_pos.second) == '#' || next_pos == obstacle_pos)) {
+        fast_move(pos, dir, next_pos);
+        if (grid.in_bounds(next_pos[0], next_pos[1]) &&
+            (grid.at(next_pos[0], next_pos[1]) == '#' || (next_pos[0] == obstacle_pos.first && next_pos[1] == obstacle_pos.second))) {
             dir = turn_right(dir);
         } else {
-            pos = next_pos;
+            pos[0] = next_pos[0];
+            pos[1] = next_pos[1];
         }
     }
     return false;
