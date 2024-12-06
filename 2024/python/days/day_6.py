@@ -50,8 +50,7 @@ def part1(input):
             direction = next_direction(direction)
         else:
             pos = next_pos
-    answer = len(seen)
-    print(f'Pt1::ans: {answer}')
+    return seen
 
 
 def is_loop(grid, start_pos, start_direction, synthetic_obstacle_point):
@@ -101,20 +100,32 @@ def part2(input):
     answer = len(loop_obstacles)
     return answer
 
+def part2_v2(input):
+    visited_locations = part1(input)
+    loop_pos = set()
+    grid = make_grid(input)
+    guard_start_idx = grid._data.index('^')
+    guard_start = (guard_start_idx % grid._x_size, guard_start_idx // grid._y_size)
+    for visited_location in visited_locations:
+        if is_loop(grid, guard_start, up, visited_location):
+            loop_pos.add(visited_location)
+    return len(loop_pos)
 
 def run():
     day = Path(__file__).name.split('.')[0].split('_')[-1]
     input = read_input(day)
     with timer():
-        part1(example)
+        print(f'Pt1(example)::ans: {len(part1(example))}')
 
     with timer():
-        part1(input)
+        print(f'Pt1::ans: {len(part1(input))}')
 
     with timer():
-        print(f'Pt2(example)::ans: {part2(example)}')
+        print(f'Pt2_v2(example)::ans: {part2_v2(example)}')
+        print(f'Pt2(example)::ans: {part2_v2(example)}')
 
     with timer():
+        print(f'Pt2_v2::ans: {part2_v2(input)}')
         print(f'Pt2::ans: {part2(input)}')
 
 

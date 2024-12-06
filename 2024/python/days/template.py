@@ -7,26 +7,27 @@ example = """HERE"""
 
 def part1(input):
     answer = '...'
-    print(f'Pt1::ans: {answer}')
+    return answer
 
 def part2(input):
     answer = '...'
-    print(f'Pt2::ans: {answer}')
+    return answer
 
 def run():
     day = Path(__file__).name.split('.')[0].split('_')[-1]
     input = read_input(day)
     with timer():
-        part1(example)
+        print(f'Pt1(example)::ans: {part1(example)}')
 
     # with timer():
-    #     part1(input)
+    #     print(f'Pt1::ans: {part1(input)}')
 
     # with timer():
-    #     part2(example)
+    #     print(f'Pt2(example)::ans: {part2(example)}')
 
     # with timer():
-    #     part2(input)
+    #     print(f'Pt2::ans: {part2(input)}')
+
 
 if __name__ == "__main__":
     run()
