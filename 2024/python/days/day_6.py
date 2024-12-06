@@ -55,7 +55,8 @@ def part1(input):
 
 
 def is_loop(grid, start_pos, start_direction, synthetic_obstacle_point):
-    seen = set()
+    # seen = set()
+    seen = {}
 
     def is_obstacle(p):
         return grid.at_p(p) == '#' or p == synthetic_obstacle_point
@@ -63,9 +64,15 @@ def is_loop(grid, start_pos, start_direction, synthetic_obstacle_point):
     direction = start_direction
     pos = start_pos
     while grid.in_bounds_p(pos):
-        if (pos, direction) in seen:
+        # if (pos, direction) in seen:
+        #     return True
+        # seen.add((pos, direction))
+        if seen.get((pos, direction), 0) == 2:
             return True
-        seen.add((pos, direction))
+        if (pos, direction) in seen:
+            seen[(pos, direction)] += 1
+        else:
+            seen[(pos, direction)] = 1
 
         next_pos = add(pos, direction)
         if grid.in_bounds_p(next_pos) and is_obstacle(next_pos):
@@ -99,6 +106,7 @@ def part2(input):
     # todo: consider if you're allowed to bounce of two hashes immediately doing a 180 turn?
     #       done: Lowers number of loops (still too high)
     # todo: removing the next_pos == guard_start constraint doesn't change the answer, is this suspicious?
+    # todo: chaning the is_loop to count seen positions nand
     while grid.in_bounds_p(pos):
         next_pos = add(pos, direction)
         if grid.in_bounds_p(next_pos):
