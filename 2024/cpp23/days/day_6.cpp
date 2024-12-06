@@ -150,7 +150,12 @@ bool is_loop(const StringGrid &grid, const std::pair<uint32_t, uint32_t> &start_
         }
         seen[seen_idx] = true;
 
-        fast_move(pos, dir, next_pos);
+        static constexpr std::array<std::array<int32_t, 2>, 4> MOVES = {{{0, -1}, {0, 1}, {-1, 0}, {1, 0}}};
+        const auto& move = MOVES[static_cast<size_t>(dir)];
+        next_pos[0] = pos[0] + move[0];
+        next_pos[1] = pos[1] + move[1];
+
+//        fast_move(pos, dir, next_pos);
         if (grid.in_bounds(next_pos[0], next_pos[1]) &&
             (grid.at(next_pos[0], next_pos[1]) == '#' ||
              (next_pos[0] == obstacle_pos.first && next_pos[1] == obstacle_pos.second))) {
@@ -197,8 +202,15 @@ void part_ii(const std::string &input) {
     for (const auto &result: thread_results) {
         total += result.size();
     }
-
     std::println("Part i: {}", total);
+
+//    std::unordered_set<std::pair<uint32_t, uint32_t>, PairHash> loop_locations;
+//    for (const auto &visited_location: visited_locations) {
+//        if (is_loop(grid, guard_start, Dir::Up, visited_location)) {
+//            loop_locations.insert(visited_location);
+//        }
+//    }
+//    std::println("Part i: {}", loop_locations.size());
 }
 
 void part_i(const std::string &input) {
