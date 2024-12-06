@@ -31,6 +31,10 @@ class TestGrid:
         assert (g2.at(2, 1) == 7)
         assert (g2.at(3, 1) == 8)
 
+    def test_grid_at_p(self):
+        assert (g2.at_p((0, 0)) == 1)
+        assert (g2.at_p((1, 0)) == 2)
+
     def test_grid_in_bounds(self):
         assert (g.in_bounds_no_tile(-1, 0) == False)
         assert (g.in_bounds_no_tile(0, -1) == False)
@@ -53,11 +57,13 @@ class TestGridTiling:
         for i in range(-10, 10):
             for j in range(-10, 10):
                 assert (g.in_bounds(i, j) == True)
+                assert (g.in_bounds_p((i, j)) == True)
 
         g = make_grid('12\n34', tile_directions=[])
         for i in range(-10, 10):
             for j in range(-10, 10):
                 assert (g.in_bounds(i, j) == bool(0 <= i and i <= 1 and 0 <= j and j <= 1))
+                assert (g.in_bounds_p((i, j)) == bool(0 <= i and i <= 1 and 0 <= j and j <= 1))
 
     def test_error_on_out_of_bounds_left(self):
         g = make_grid('12\n34', tile_directions=[Dir.Right]) # tile right to "trick" the logic into % x

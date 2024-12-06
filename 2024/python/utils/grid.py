@@ -34,6 +34,9 @@ class Grid:
         assert self.in_bounds_no_tile(x, y), f"({x},{y}) out of bounds of ({self._x_size - 1},{self._y_size - 1})"
         return self._data[y * self._x_size + x]
 
+    def at_p(self, point):
+        return self.at(point[0], point[1])
+
     def in_bounds_no_tile(self, x, y):
         return 0 <= x and x < self._x_size and 0 <= y and y < self._y_size
 
@@ -44,6 +47,9 @@ class Grid:
             y = y % self._y_size
 
         return self.in_bounds_no_tile(x, y)
+
+    def in_bounds_p(self, point):
+        return self.in_bounds(point[0], point[1])
 
 
 def make_grid(input, as_ints=False, tile_directions=[]):
