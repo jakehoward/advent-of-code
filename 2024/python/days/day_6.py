@@ -107,7 +107,7 @@ def run():
 
     with timer():
         ans = part2(input)
-        assert ans == 1304
+        assert ans == 1304, f"Expected: {1304}, got: {ans}"
         print(f'Pt2::ans: {ans}')
 
 
