@@ -135,13 +135,18 @@ get_visited_locations(const StringGrid &grid, const std::pair<uint32_t, uint32_t
     return seen;
 }
 
+static std::atomic<int> is_loop_call_counter{0};
 bool is_loop(const StringGrid &grid, const std::pair<uint32_t, uint32_t> &start_pos, const Dir &start_direction,
              const std::pair<uint32_t, uint32_t> &obstacle_pos) {
+
+    is_loop_call_counter++;
 
     std::array<uint32_t, 2> pos{start_pos.first, start_pos.second};
     std::array<uint32_t, 2> next_pos{0, 0};
     auto dir = start_direction;
     std::vector<bool> seen(grid.line_length * grid.num_lines * 4, false); // 4 directions
+
+
     while (grid.in_bounds(pos[0], pos[1])) {
         const auto dir_idx = static_cast<size_t>(dir);
         uint64_t seen_idx = (grid.line_length * pos[1] + pos[0]) * 4 + dir_idx;
@@ -175,20 +180,20 @@ void part_ii(const std::string &input) {
 
     uint32_t num = 0;
     uint32_t num_batches = 5;
-    std::vector<std::unordered_set<std::pair<uint32_t, uint32_t>, PairHash>> batches(num_batches);
+    std::vector<std::vector<std::pair<uint32_t, uint32_t>>> batches(num_batches);
     for (const auto &visited_location: visited_locations) {
-        batches.at(num % num_batches).insert(visited_location);
+        batches.at(num % num_batches).push_back(visited_location);
         num += 1;
     }
 
     std::vector<std::thread> threads;
     threads.reserve(num_batches);
-    std::vector<std::unordered_set<std::pair<uint32_t, uint32_t>, PairHash>> thread_results(num_batches);
+    std::atomic<int> num_loops{0};
     for (uint32_t i = 0; i < num_batches; ++i) {
-        threads.emplace_back([&grid, &guard_start, &batch = batches[i], i, &thread_results]() {
+        threads.emplace_back([&grid, &guard_start, &batch = batches[i], &num_loops]() {
             for (const auto &visited_location: batch) {
                 if (is_loop(grid, guard_start, Dir::Up, visited_location)) {
-                    thread_results[i].insert(visited_location);
+                    num_loops++;
                 }
             }
         });
@@ -197,20 +202,16 @@ void part_ii(const std::string &input) {
     for (auto &t: threads) {
         t.join();
     }
-    size_t total = 0;
-    for (const auto &result: thread_results) {
-        total += result.size();
-    }
-    std::println("Part i: {}", total);
+    std::println("Part i: {} - is_loop called {} times", num_loops.load(), is_loop_call_counter.load());
 
     // Single threaded version
-//    std::unordered_set<std::pair<uint32_t, uint32_t>, PairHash> loop_locations;
+//    uint64_t num_loops{0};
 //    for (const auto &visited_location: visited_locations) {
 //        if (is_loop(grid, guard_start, Dir::Up, visited_location)) {
-//            loop_locations.insert(visited_location);
+//            ++num_loops;
 //        }
 //    }
-//    std::println("Part i: {}", loop_locations.size());
+//    std::println("Part i: {}", num_loops);
 }
 
 void part_i(const std::string &input) {
