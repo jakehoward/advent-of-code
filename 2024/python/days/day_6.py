@@ -77,20 +77,35 @@ def is_square_loop(grid, pos, direction):
     else:
         return False
 
-def is_loop(grid, pos, direction):
-    og_pos = pos
-    og_direction = next_direction(next_direction(next_direction(direction)))
-    # do you end up back where you started?
-    first_loop = True
-    while grid.in_bounds(pos[0], pos[1]):
-        if not first_loop and pos == og_pos and direction == og_direction:
+def is_loop(grid, start_pos, start_direction):
+    seen = set()
+    seen.add((start_pos, start_direction))
+
+    direction = next_direction(start_direction)
+    pos = start_pos
+    max_iters = 1000000
+    iters = 0
+    turns = 0
+    while grid.in_bounds(pos[0], pos[1]): # and iters < max_iters:
+        if iters > max_iters:
+            return False #raise Exception('FORCE BREAKING')
+        iters += 1
+        if (pos, direction) in seen: # and turns >= 25: # As you increase the num turns, the num results goes down (some eventually exit)
+            # return (pos, direction) == (start_pos, start_direction)
             return True
-        first_loop = False
+        # Why does it over count when tracking everywhere we've been?
+        # Why does it end up on the same path before getting back to start? (get bumped into a _different_ loop?)
+        # Why does it hit max iters before exiting the puzzle grid? <--- THIS !!!
+        #    It MUST end up in a loop (causing it to force break), which the seen set finds if we add all pos,dir tuples
+        seen.add((pos, direction))
+
         next_pos = add(pos, direction)
         if grid.in_bounds(next_pos[0], next_pos[1]) and grid.at(next_pos[0], next_pos[1]) == '#':
             direction = next_direction(direction)
+            turns += 1
         else:
             pos = next_pos
+
     return False
 
 def part2(input):
@@ -100,28 +115,25 @@ def part2(input):
     pos = guard_start
     direction = up
     num_loops = 0
-    travelled_in_dir = 0
+    travelled_in_dir = False
     while grid.in_bounds(pos[0], pos[1]):
         next_pos = add(pos, direction)
         if grid.in_bounds(next_pos[0], next_pos[1]):
             if grid.at(next_pos[0], next_pos[1]) == '#':
                 direction = next_direction(direction)
-                travelled_in_dir = 0
-            elif next_pos != guard_start and travelled_in_dir > 0:
-                # Put obstacle in way and search for loop shape
-                # todo: don't include start pos
-                next_dir = next_direction(direction)
-                # todo: if over counting, don't allow full 180
-                if is_loop(grid, pos, next_dir):
+                travelled_in_dir = False
+                continue
+            # Don't include guard start and don't allow full 180 turn
+            elif next_pos != guard_start: # and travelled_in_dir:
+                # Put obstacle in way and search for loop shape (only if wouldn't create double bounce)
+                loop_next_dir = next_direction(direction)
+                loop_next_pos = add(pos, loop_next_dir)
+                loop_next_pos_in_bounds = grid.in_bounds(loop_next_pos[0], loop_next_pos[1])
+
+                if loop_next_pos_in_bounds and grid.at(loop_next_pos[0], loop_next_pos[1]) != '#' and is_loop(grid, pos, direction):
                     num_loops += 1
-                pos = next_pos
-                travelled_in_dir += 1
-            else:
-                pos = next_pos
-                travelled_in_dir += 1
-        else:
-            pos = next_pos
-            travelled_in_dir += 1
+        pos = next_pos
+        travelled_in_dir = True
     answer = num_loops
     print(f'Pt2::ans: {answer}')
 
@@ -138,6 +150,8 @@ def run():
         part2(example)
 
     with timer():
+        # 1394 too high
+        # 1342 too high
         part2(input)
 
 if __name__ == "__main__":
