@@ -137,23 +137,23 @@ get_visited_locations(const StringGrid &grid, const std::pair<uint32_t, uint32_t
 
 bool is_loop(const StringGrid &grid, const std::pair<uint32_t, uint32_t> &start_pos, const Dir &start_direction,
              const std::pair<uint32_t, uint32_t> &obstacle_pos) {
-    std::array<std::unordered_set<uint64_t>, 4> seen{};
 
     std::array<uint32_t, 2> pos{start_pos.first, start_pos.second};
     std::array<uint32_t, 2> next_pos{0, 0};
-
     auto dir = start_direction;
+    std::vector<bool> seen(grid.line_length * grid.num_lines * 4, false); // 4 directions
     while (grid.in_bounds(pos[0], pos[1])) {
-        uint64_t seen_check = (static_cast<uint64_t>(pos[0]) << 32) | static_cast<uint64_t>(pos[1]);
         const auto dir_idx = static_cast<size_t>(dir);
-        if (seen[dir_idx].contains(seen_check)) {
+        uint64_t seen_idx = (grid.line_length * pos[1] + pos[0]) * 4 + dir_idx;
+        if (seen[seen_idx]) {
             return true;
         }
-        seen[dir_idx].insert(seen_check);
+        seen[seen_idx] = true;
 
         fast_move(pos, dir, next_pos);
         if (grid.in_bounds(next_pos[0], next_pos[1]) &&
-            (grid.at(next_pos[0], next_pos[1]) == '#' || (next_pos[0] == obstacle_pos.first && next_pos[1] == obstacle_pos.second))) {
+            (grid.at(next_pos[0], next_pos[1]) == '#' ||
+             (next_pos[0] == obstacle_pos.first && next_pos[1] == obstacle_pos.second))) {
             dir = turn_right(dir);
         } else {
             pos[0] = next_pos[0];
