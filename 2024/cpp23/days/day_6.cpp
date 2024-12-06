@@ -3,6 +3,7 @@
 #include <utility>
 #include <vector>
 #include <thread>
+#include <cstdint>
 #include <utils/misc.hpp>
 
 std::string example(R"(....#.....
@@ -23,18 +24,18 @@ public:
                                                 num_lines(s.ends_with('\n') ? (s.length() / line_length) : (
                                                         (s.length() + 1) / line_length)) {}
 
-    [[nodiscard]] char at(int x, int y) const {
+    [[nodiscard]] char at(uint32_t x, uint32_t y) const {
         return s.at(line_length * y + x);
     }
 
-    [[nodiscard]] bool in_bounds(int x, int y) const {
+    [[nodiscard]] bool in_bounds(uint32_t x, uint32_t y) const {
         return y < num_lines && x < (line_length - 1);
     }
 
-    [[nodiscard]] std::pair<int, int> find(char c) const {
+    [[nodiscard]] std::pair<uint32_t, uint32_t> find(char c) const {
         auto idx = s.find(c);
-        int x = idx % line_length;
-        int y = idx / line_length;
+        uint32_t x = idx % line_length;
+        uint32_t y = idx / line_length;
 
         return {x, y};
     }
@@ -87,7 +88,7 @@ Dir turn_right(Dir dir) {
         return Dir::Up;
 }
 
-std::pair<int, int> move(const std::pair<int, int> &p, Dir d) {
+std::pair<uint32_t, uint32_t> move(const std::pair<uint32_t, uint32_t> &p, Dir d) {
     if (d == Dir::Up)
         return {p.first, p.second - 1};
     if (d == Dir::Down)
@@ -98,11 +99,11 @@ std::pair<int, int> move(const std::pair<int, int> &p, Dir d) {
         return {p.first + 1, p.second};
 }
 
-std::unordered_set<std::pair<int, int>, PairHash>
-get_visited_locations(const StringGrid &grid, const std::pair<int, int> &start, const Dir &start_dir) {
+std::unordered_set<std::pair<uint32_t, uint32_t>, PairHash>
+get_visited_locations(const StringGrid &grid, const std::pair<uint32_t, uint32_t> &start, const Dir &start_dir) {
     auto pos = start;
     auto dir = start_dir;
-    std::unordered_set<std::pair<int, int>, PairHash> seen{};
+    std::unordered_set<std::pair<uint32_t, uint32_t>, PairHash> seen{};
     while (grid.in_bounds(pos.first, pos.second)) {
         seen.insert(pos);
         auto next_pos = move(pos, dir);
@@ -115,16 +116,19 @@ get_visited_locations(const StringGrid &grid, const std::pair<int, int> &start, 
     return seen;
 }
 
-bool is_loop(const StringGrid &grid, const std::pair<int, int> &start_pos, const Dir &start_direction,
-             const std::pair<int, int> &obstacle_pos) {
-    std::unordered_set<std::pair<std::pair<int, int>, Dir>, NestedPairHash> seen{};
+bool is_loop(const StringGrid &grid, const std::pair<uint32_t, uint32_t> &start_pos, const Dir &start_direction,
+             const std::pair<uint32_t, uint32_t> &obstacle_pos) {
+    std::array<std::unordered_set<uint64_t>, 4> seen{};
+
     auto dir = start_direction;
     auto pos = start_pos;
     while (grid.in_bounds(pos.first, pos.second)) {
-        if (seen.contains({pos, dir})) {
+        uint64_t seen_check = (static_cast<uint64_t>(pos.first) << 32) | static_cast<uint64_t>(pos.second);
+        const auto dir_idx = static_cast<size_t>(dir);
+        if (seen[dir_idx].contains(seen_check)) {
             return true;
         }
-        seen.insert({pos, dir});
+        seen[dir_idx].insert(seen_check);
 
         auto next_pos = move(pos, dir);
         if (grid.in_bounds(next_pos.first, next_pos.second) && (grid.at(next_pos.first, next_pos.second) == '#' || next_pos == obstacle_pos)) {
@@ -142,9 +146,9 @@ void part_ii(const std::string &input) {
 
     auto visited_locations = get_visited_locations(grid, guard_start, Dir::Up);
 
-    int num = 0;
-    int num_batches = 5;
-    std::vector<std::unordered_set<std::pair<int, int>, PairHash>> batches(num_batches);
+    uint32_t num = 0;
+    uint32_t num_batches = 5;
+    std::vector<std::unordered_set<std::pair<uint32_t, uint32_t>, PairHash>> batches(num_batches);
     for (const auto &visited_location: visited_locations) {
         batches.at(num % num_batches).insert(visited_location);
         num += 1;
@@ -152,8 +156,8 @@ void part_ii(const std::string &input) {
 
     std::vector<std::thread> threads;
     threads.reserve(num_batches);
-    std::vector<std::unordered_set<std::pair<int, int>, PairHash>> thread_results(num_batches);
-    for (int i = 0; i < num_batches; ++i) {
+    std::vector<std::unordered_set<std::pair<uint32_t, uint32_t>, PairHash>> thread_results(num_batches);
+    for (uint32_t i = 0; i < num_batches; ++i) {
         threads.emplace_back([&grid, &guard_start, &batch = batches[i], i, &thread_results]() {
             for (const auto &visited_location: batch) {
                 if (is_loop(grid, guard_start, Dir::Up, visited_location)) {
