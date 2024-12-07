@@ -26,7 +26,7 @@ def parse(input):
 def part1(input):
     ans_nums_list = parse(input)
 
-    def is_possible(ans, nums, total=0):
+    def is_possible(ans, nums, total):
         if len(nums) == 0:
             return total == ans
         next_num = nums[0]
@@ -36,7 +36,7 @@ def part1(input):
 
     possible_ans = []
     for ans, nums in ans_nums_list:
-        if is_possible(ans, nums):
+        if is_possible(ans, nums[1:], nums[0]):
             possible_ans.append(ans)
     return sum(possible_ans)
 
@@ -44,7 +44,7 @@ def part1(input):
 def part2(input):
     ans_nums_list = parse(input)
 
-    def is_possible(ans, nums, total=0):
+    def is_possible(ans, nums, total):
         if total > ans:
             return False
         if len(nums) == 0:
@@ -56,7 +56,7 @@ def part2(input):
 
     answer = 0
     for ans, nums in ans_nums_list:
-        if is_possible(ans, nums):
+        if is_possible(ans, nums[1:], nums[0]):
             answer += ans
     return answer
 
