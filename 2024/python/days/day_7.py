@@ -13,16 +13,19 @@ example = """190: 10 19
 21037: 9 7 18 13
 292: 11 6 16 20"""
 
+
 def parse(input):
     inputs = []
     for line in input.splitlines():
         ans, snums = line.split(': ')
         nums = [int(n) for n in snums.split(' ')]
-        inputs.append((int(ans), nums))
+        inputs.append((int(ans), tuple(nums)))
     return inputs
+
 
 def part1(input):
     ans_nums_list = parse(input)
+
     def is_possible(ans, nums, total=0):
         if len(nums) == 0:
             return total == ans
@@ -37,23 +40,26 @@ def part1(input):
             possible_ans.append(ans)
     return sum(possible_ans)
 
+
 def part2(input):
     ans_nums_list = parse(input)
 
     def is_possible(ans, nums, total=0):
+        if total > ans:
+            return False
         if len(nums) == 0:
             return total == ans
         next_num = nums[0]
-        mul_ans = is_possible(ans, nums[1:], total * next_num)
-        add_ans = is_possible(ans, nums[1:], total + next_num)
-        con_ans = is_possible(ans, nums[1:], int(str(total) + str(next_num)))
-        return mul_ans or add_ans or con_ans
+        return (is_possible(ans, nums[1:], total * next_num) or
+                is_possible(ans, nums[1:], total + next_num) or
+                is_possible(ans, nums[1:], int(str(total) + str(next_num))))
 
-    possible_ans = []
+    answer = 0
     for ans, nums in ans_nums_list:
         if is_possible(ans, nums):
-            possible_ans.append(ans)
-    return sum(possible_ans)
+            answer += ans
+    return answer
+
 
 def run():
     day = Path(__file__).name.split('.')[0].split('_')[-1]
@@ -70,12 +76,12 @@ def run():
 
     with timer():
         ans = part2(example)
-        assert ans == 11387
+        assert ans == 11387, f"Got: {ans}, Expected: {11387}"
         print(f'Pt2_v2(example)::ans: {ans}')
 
     with timer():
         ans = part2(input)
-        assert ans == 162987117690649
+        assert ans == 162987117690649, f"Got: {ans}, Expected: {162987117690649}"
         print(f'Pt2::ans: {ans}')
 
 
