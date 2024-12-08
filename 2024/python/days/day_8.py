@@ -31,11 +31,9 @@ example_2 = """T....#....
 
 def get_antenna_locs_by_type(grid):
     antenna_locs_by_type = {}
-    for x in range(grid._x_size):
-        for y in range(grid._y_size):
-            node = grid.at(x, y)
-            if node != '.' and node != '#':
-                antenna_locs_by_type.setdefault(node, []).append((x, y))
+    for (x, y), value in grid:
+        if value != '.' and value != '#':
+            antenna_locs_by_type.setdefault(value, []).append((x, y))
     return antenna_locs_by_type
 
 
@@ -80,6 +78,7 @@ def part2(input):
                 anti_1 = (anti_1[0] + dx, anti_1[1] + dy)
                 anti_2 = (anti_2[0] - dx, anti_2[1] - dy)
 
+    # print(grid.as_string(overlays=[(p, '#' if p not in antenna_locs_by_type['T'] else 'T') for p in antinodes]))
     return len(antinodes)
 
 def run():
@@ -109,10 +108,6 @@ def run():
         ans = part2(input)
         assert ans == 861, "Expected answer is 861, got: {}".format(ans)
         print(f'Pt2::ans: {ans}')
-
-# todo:
-# - Make iterating the grid coords a member of grid
-# - Add printing grid (with overlay) as member of grid
 
 if __name__ == "__main__":
     run()

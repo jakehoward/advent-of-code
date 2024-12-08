@@ -232,3 +232,19 @@ class TestNbrsGrid:
         assert (sorted(g.get_nbrs(2, 2, include_diagonals=True)) == sorted([6, 5, 8]))
         assert (sorted(g.get_nbrs(2, 0, include_diagonals=True)) == sorted([2,5,6]))
         assert (sorted(g.get_nbrs(0, 2, include_diagonals=True)) == sorted([4,5,8]))
+
+class TestGridAsString:
+    def test_as_string(self):
+        g = make_grid('12\n34', as_ints=False, tile_directions=all_dirs)
+        assert (g.as_string() == '12\n34')
+        g_int = make_grid('12\n34', as_ints=True, tile_directions=all_dirs)
+        assert (g_int.as_string() == '12\n34')
+
+    def test_as_string_with_overlays(self):
+        g = make_grid('12\n34', as_ints=True, tile_directions=all_dirs)
+        assert (g.as_string(overlays=[((1,1), '#')]) == '12\n3#')
+
+class TestGridIterating:
+    def test_grid_iterating(self):
+        g = make_grid('12\n34', as_ints=True, tile_directions=all_dirs)
+        assert ([((x, y), value) for (x, y), value in g] == [((0, 0), 1), ((1, 0), 2), ((0, 1), 3), ((1, 1), 4)])
