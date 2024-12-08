@@ -2,3 +2,4 @@ input/
 .venv/
 .idea/
 __pycache__/
+media/

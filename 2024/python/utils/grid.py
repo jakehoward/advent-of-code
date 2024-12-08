@@ -67,8 +67,6 @@ class Grid:
         for point, char in overlays:
             if point in overlay_lookup:
                 raise ValueError(f"Overlay {(point, char)} already exists: {overlay_lookup[point]}")
-            if len(str(char)) != 1:
-                raise ValueError(f"Overlay char must be length 1, got {(point, char)}")
             overlay_lookup[point] = char
 
         chars = []
@@ -78,6 +76,22 @@ class Grid:
                 chars.append(str(char))
             chars.append('\n')
         return "".join(chars).strip()
+
+    def as_2d_array(self, overlays=[]):
+        overlay_lookup = {}
+        for point, char in overlays:
+            if point in overlay_lookup:
+                raise ValueError(f"Overlay {(point, char)} already exists: {overlay_lookup[point]}")
+            overlay_lookup[point] = char
+
+        grid_2d = []
+        for line in range(self._y_size):
+            line_arr = []
+            for col in range(self._x_size):
+                cell = overlay_lookup.get((col, line), self.at(col, line))
+                line_arr.append(cell)
+            grid_2d.append(line_arr)
+        return grid_2d
 
 def make_grid(input, as_ints=False, tile_directions=[]):
     rows = input.strip().split('\n')
