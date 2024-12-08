@@ -1,4 +1,5 @@
 from pathlib import Path
+from itertools import combinations
 
 from utils.grid import make_grid
 from utils.misc import timer
@@ -44,17 +45,15 @@ def part1(input):
 
     antinodes = set()
     for name, antenna_locs in antenna_locs_by_type.items():
-        for i, antenna_a in enumerate(antenna_locs):
-            for j, antenna_b in enumerate(antenna_locs):
-                if i != j:
-                    dx = antenna_a[0] - antenna_b[0]
-                    dy = antenna_a[1] - antenna_b[1]
-                    anti_1 = (antenna_a[0] + dx, antenna_a[1] + dy)
-                    anti_2 = (antenna_b[0] - dx, antenna_b[1] - dy)
-                    if grid.in_bounds_p(anti_1):
-                        antinodes.add(anti_1)
-                    if grid.in_bounds_p(anti_2):
-                        antinodes.add(anti_2)
+        for antenna_a, antenna_b in combinations(antenna_locs, 2):
+            dx = antenna_a[0] - antenna_b[0]
+            dy = antenna_a[1] - antenna_b[1]
+            anti_1 = (antenna_a[0] + dx, antenna_a[1] + dy)
+            anti_2 = (antenna_b[0] - dx, antenna_b[1] - dy)
+            if grid.in_bounds_p(anti_1):
+                antinodes.add(anti_1)
+            if grid.in_bounds_p(anti_2):
+                antinodes.add(anti_2)
 
     return len(antinodes)
 
@@ -64,22 +63,23 @@ def part2(input):
     antenna_locs_by_type = get_antenna_locs_by_type(grid)
     antinodes = set()
     for name, antenna_locs in antenna_locs_by_type.items():
-        for i, antenna_a in enumerate(antenna_locs):
-            for j, antenna_b in enumerate(antenna_locs):
-                antinodes.add(antenna_a)
-                antinodes.add(antenna_b)
-                if i != j:
-                    dx = antenna_a[0] - antenna_b[0]
-                    dy = antenna_a[1] - antenna_b[1]
-                    anti_1 = (antenna_a[0] + dx, antenna_a[1] + dy)
-                    anti_2 = (antenna_b[0] - dx, antenna_b[1] - dy)
-                    while grid.in_bounds_p(anti_1) or grid.in_bounds_p(anti_2):
-                        if grid.in_bounds_p(anti_1):
-                            antinodes.add(anti_1)
-                        if grid.in_bounds_p(anti_2):
-                            antinodes.add(anti_2)
-                        anti_1 = (anti_1[0] + dx, anti_1[1] + dy)
-                        anti_2 = (anti_2[0] - dx, anti_2[1] - dy)
+        for antenna_a, antenna_b in combinations(antenna_locs, 2):
+            antinodes.add(antenna_a)
+            antinodes.add(antenna_b)
+
+            dx = antenna_a[0] - antenna_b[0]
+            dy = antenna_a[1] - antenna_b[1]
+            anti_1 = (antenna_a[0] + dx, antenna_a[1] + dy)
+            anti_2 = (antenna_b[0] - dx, antenna_b[1] - dy)
+
+            while grid.in_bounds_p(anti_1) or grid.in_bounds_p(anti_2):
+                if grid.in_bounds_p(anti_1):
+                    antinodes.add(anti_1)
+                if grid.in_bounds_p(anti_2):
+                    antinodes.add(anti_2)
+                anti_1 = (anti_1[0] + dx, anti_1[1] + dy)
+                anti_2 = (anti_2[0] - dx, anti_2[1] - dy)
+
     return len(antinodes)
 
 def run():
@@ -112,7 +112,6 @@ def run():
 
 # todo:
 # - Make iterating the grid coords a member of grid
-# - Don't check pairs twice (itertools)
 # - Add printing grid (with overlay) as member of grid
 
 if __name__ == "__main__":
