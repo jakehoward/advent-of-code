@@ -18,22 +18,22 @@ def run():
     input = read_input(day)
     with timer():
         ans = part1(example)
-        # assert ans == None
+        # assert ans == None, "Got: {}".format(ans)
         print(f'Pt1(example)::ans: {ans}')
 
     # with timer():
     #     ans = part1(input)
-    #     assert ans == None
+    #     assert ans == None, "Got: {}".format(ans)
     #     print(f'Pt1::ans: {ans}')
 
     # with timer():
     #     ans = part2(example)
-    #     assert ans == None
+    #     assert ans == None, "Got: {}".format(ans)
     #     print(f'Pt2_v2(example)::ans: {ans}')
 
     # with timer():
     #     ans = part2(input)
-    #     assert ans == None
+    #     assert ans == None, "Got: {}".format(ans)
     #     print(f'Pt2::ans: {ans}')
 
 

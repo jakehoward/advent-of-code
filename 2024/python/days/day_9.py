@@ -27,7 +27,8 @@ def create_fs_arr(input):
 
 def part1(input):
     if len(input) % 2 == 0:
-        print("Input is even length!")
+        print("Input is even length. Solution may not work..!")
+        return
 
     arr = create_fs_arr(input)
 
@@ -41,13 +42,8 @@ def part1(input):
             arr[last_block_idx] = -1
             last_block_idx = find_last_block(arr, last_block_idx - 1)
 
-    # print(arr)
     answer = sum([i * n for i, n in enumerate(arr) if n != -1])
     return answer
-
-def swap(arr, i, j):
-    arr[i], arr[j] = arr[j], arr[i]
-    return arr
 
 FREE_ID = -1
 
