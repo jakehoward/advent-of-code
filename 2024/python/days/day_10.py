@@ -79,6 +79,17 @@ def part2(input):
 
     return answer
 
+def maxs_solution(input):
+    grid = {i + j * 1j: int(c) for i, r in enumerate(input.splitlines()) for j, c in enumerate(r.strip())}
+    paths = [[p] for p in grid if grid[p] == 0]
+    for i in range(1, 10):
+        paths = [p + [n] for d in [1, -1j, -1, 1j] for p in paths if ((n := p[-1] + d) in grid and grid[n] == i)]
+    return paths
+
+
+def part2_max(input):
+    return len((maxs_solution(input)))
+
 def run():
     day = Path(__file__).name.split('.')[0].split('_')[-1]
     input = read_input(day)
@@ -100,13 +111,18 @@ def run():
     with timer():
         ans = part2(example)
         assert ans == 81, "Got: {}".format(ans)
-        print(f'Pt2_v2(example)::ans: {ans}')
+        print(f'Pt2(example)::ans: {ans}')
+
+
+    with timer():
+        ans = part2_max(input)
+        assert ans == 1094, "Got: {}".format(ans)
+        print(f'Pt2(Max)::ans: {ans}')
 
     with timer():
         ans = part2(input)
         assert ans == 1094, "Got: {}".format(ans)
         print(f'Pt2::ans: {ans}')
-
 
 if __name__ == "__main__":
     run()
