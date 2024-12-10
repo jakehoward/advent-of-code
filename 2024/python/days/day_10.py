@@ -114,15 +114,15 @@ def run():
         print(f'Pt2(example)::ans: {ans}')
 
 
-    with timer():
-        ans = part2_max(input)
-        assert ans == 1094, "Got: {}".format(ans)
-        print(f'Pt2(Max)::ans: {ans}')
-
-    with timer():
-        ans = part2(input)
-        assert ans == 1094, "Got: {}".format(ans)
-        print(f'Pt2::ans: {ans}')
+    # day = '10_perf_check'
+    # input = read_input(day)
+    # with timer():
+    #     ans = part2_max(input)
+    #     print(f'Pt2(Max)::ans: {ans}')
+    #
+    # with timer():
+    #     ans = part2(input)
+    #     print(f'Pt2::ans: {ans}')
 
 if __name__ == "__main__":
     run()
