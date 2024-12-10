@@ -29,7 +29,7 @@ def run():
     # with timer():
     #     ans = part2(example)
     #     assert ans == None, "Got: {}".format(ans)
-    #     print(f'Pt2_v2(example)::ans: {ans}')
+    #     print(f'Pt2(example)::ans: {ans}')
 
     # with timer():
     #     ans = part2(input)
