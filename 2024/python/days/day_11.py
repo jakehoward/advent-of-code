@@ -2,12 +2,19 @@ from pathlib import Path
 
 from utils.misc import timer
 from utils.read import read_input
+import math
 
 example = """125 17"""
 
 def calc_next_stones(stone):
     if stone == 0:
         return [1]
+    # stone_log_10 = int(math.log(stone, 10))
+    # if stone_log_10 % 2 == 1:
+    #     factor = int(math.pow(10, (stone_log_10 + 1) // 2))
+    #     lhs = stone // factor
+    #     rhs = stone - lhs * factor
+    #     return [lhs, rhs]
     str_stone = str(stone)
     if len(str_stone) % 2 == 0:
         return [int(str_stone[0: len(str_stone) // 2]), int(str_stone[len(str_stone) // 2:])]
@@ -64,6 +71,28 @@ def solve_for_stone(start_stone, n_times, stone_iters_to_ans):
     stone_iters_to_ans[(start_stone, n_times)] = ans
     return ans
 
+def better_solve_for_stone(start_stone, n_times, stone_iters_to_ans):
+    if known_ans := stone_iters_to_ans.get((start_stone, n_times)):
+        return known_ans
+    deferred = []
+    seen = set()
+    stones = [start_stone]
+    rem_iters = n_times
+    while rem_iters > 0 and stones:
+        next_stones = []
+        for stone in stones:
+            if stone in seen:
+                deferred.append((stone, rem_iters))
+                continue
+            seen.add(stone)
+            next_stones += calc_next_stones(stone)
+        stones = next_stones
+        rem_iters -= 1
+
+    answer = len(stones) + sum([better_solve_for_stone(stone, num_iters, stone_iters_to_ans) for stone, num_iters in deferred])
+    stone_iters_to_ans[(start_stone, n_times)] = answer
+    return answer
+
 # 814 1183689 0 1 766231 4091 93836 46
 def part2(input, n_times):
     stones = [int(stone) for stone in input.split()]
@@ -71,7 +100,7 @@ def part2(input, n_times):
     ans = 0
     for i, stone in enumerate(stones):
         print(f'stone {i+1} of {len(stones)}')
-        num_stones = solve_for_stone(stone, n_times, stone_to_num_iters_to_ans)
+        num_stones = better_solve_for_stone(stone, n_times, stone_to_num_iters_to_ans)
         ans += num_stones
     return ans
 
