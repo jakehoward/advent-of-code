@@ -38,28 +38,14 @@ def part1(input):
     return ans
 
 
-def solve_for_stone(start_stone, n_times, stone_iters_to_ans):
-    if known_ans := stone_iters_to_ans.get((start_stone, n_times)):
+def solve_for_stone(start_stone, iters, stone_iters_to_ans):
+    if known_ans := stone_iters_to_ans.get((start_stone, iters)):
         return known_ans
-    deferred = []
-    seen = set()
-    stones = [start_stone]
-    rem_iters = n_times
-    while rem_iters > 0 and stones:
-        next_stones = []
-        for stone in stones:
-            if stone in seen:
-                deferred.append((stone, rem_iters))
-                continue
-            seen.add(stone)
-            next_stones += calc_next_stones(stone)
-        stones = next_stones
-        rem_iters -= 1
-
-    answer = len(stones)
-    answer += sum([solve_for_stone(stone, num_iters, stone_iters_to_ans) for stone, num_iters in deferred])
-    stone_iters_to_ans[(start_stone, n_times)] = answer
-    return answer
+    if iters == 0:
+        return 1
+    ans = sum([solve_for_stone(stone, iters - 1, stone_iters_to_ans) for stone in calc_next_stones(start_stone)])
+    stone_iters_to_ans[(start_stone, iters)] = ans
+    return ans
 
 
 def part2(input, n_times):
