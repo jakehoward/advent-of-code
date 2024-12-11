@@ -13,16 +13,16 @@ def calc_next_stones(stone):
         return [int(str_stone[0: len(str_stone) // 2]), int(str_stone[len(str_stone) // 2:])]
     return [stone * 2024]
 
-def brute_force(stone, n_times, stone_iters_to_ans=None):
-    # if stone_iters_to_ans and stone_iters_to_ans.get((stone, n_times)):
-    #     return stone_iters_to_ans[(stone, n_times)]
+def brute_force(start_stone, n_times, stone_iters_to_ans=None):
+    if stone_iters_to_ans and stone_iters_to_ans.get((start_stone, n_times)):
+        return stone_iters_to_ans[(start_stone, n_times)]
 
-    stones = [stone]
+    stones = [start_stone]
     for i in range(n_times):
         next_stones = []
         for stone in stones:
             next_stones += calc_next_stones(stone)
-        # if stone_iters_to_ans: stone_iters_to_ans[(stone, i)] = len(next_stones)
+        if stone_iters_to_ans: stone_iters_to_ans[(start_stone, i + 1)] = len(next_stones)
         stones = next_stones
     answer = len(stones)
     return answer
@@ -64,6 +64,7 @@ def solve_for_stone(start_stone, n_times, stone_iters_to_ans):
     stone_iters_to_ans[(start_stone, n_times)] = ans
     return ans
 
+# 814 1183689 0 1 766231 4091 93836 46
 def part2(input, n_times):
     stones = [int(stone) for stone in input.split()]
     stone_to_num_iters_to_ans = {}
@@ -78,36 +79,29 @@ def part2(input, n_times):
 def run():
     day = Path(__file__).name.split('.')[0].split('_')[-1]
     input = read_input(day)
-    # with timer():
-    #     ans = part1(example)
-    #     assert ans == 55312, "Got: {}".format(ans)
-    #     print(f'Pt1(example)::ans: {ans}')
+    with timer():
+        ans = part1(example)
+        assert ans == 55312, "Got: {}".format(ans)
+        print(f'Pt1(example)::ans: {ans}')
 
     with timer():
         ans = part1(input)
         assert ans == 200446, "Got: {}".format(ans)
         print(f'Pt1::ans: {ans}')
 
-    # with timer():
-    #     ans = part2(example)
-    #     assert ans == None, "Got: {}".format(ans)
-    #     print(f'Pt2(example)::ans: {ans}')
-
     with timer():
-        check_ans = part2(input, 25)
-        assert check_ans == 200446, "Pt CHECK, expected 200446, Got: {}".format(check_ans)
-        print('Check 25 passed')
-        check_30_ans = part2('0 25', 30)
-        bf_30_ans = brute_force(0, 30) + brute_force(25, 30)
-        assert check_30_ans == bf_30_ans, f"Got {check_30_ans}, Expected: {bf_30_ans}"
-        print('Check 30 passed')
-        single_ans = part2('0', 75)
-        print('single_stone_ans:', single_ans)
+        # check_ans = part2(input, 25)
+        # assert check_ans == 200446, "Pt CHECK, expected 200446, Got: {}".format(check_ans)
+        # print('Check 25 passed')
+
+        # check_30_ans = part2('0 25', 30)
+        # bf_30_ans = brute_force(0, 30) + brute_force(25, 30)
+        # assert check_30_ans == bf_30_ans, f"Got {check_30_ans}, Expected: {bf_30_ans}"
+        # print('Check 30 passed')
 
         ans = part2(input, 75)
-    #     assert ans == blink(input, 35), "Got: {}".format(ans)
+        assert ans == 238317474993392, "Got: {}".format(ans)
         print(f'Pt2::ans: {ans}')
-
 
 if __name__ == "__main__":
     run()
