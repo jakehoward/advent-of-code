@@ -24,29 +24,25 @@ def solve_for_stone(start_stone, iters):
     return ans
 
 
-def part1(input):
-    return sum([solve_for_stone(int(stone), 25) for stone in input.split()])
-
-
-def part2(input):
-    return sum([solve_for_stone(int(stone), 75) for stone in input.split()])
+def solve_for_stones(input, num_iters):
+    return sum([solve_for_stone(int(stone), num_iters) for stone in input.split()])
 
 
 def run():
     day = Path(__file__).name.split('.')[0].split('_')[-1]
     input = read_input(day)
     with timer():
-        ans = part1(example)
+        ans = solve_for_stones(example, 25)
         assert ans == 55312, "Got: {}".format(ans)
         print(f'Pt1(example)::ans: {ans}')
 
     with timer():
-        ans = part1(input)
+        ans = solve_for_stones(input, 25)
         assert ans == 200446, "Got: {}".format(ans)
         print(f'Pt1::ans: {ans}')
 
     with timer():
-        ans = part2(input)
+        ans = solve_for_stones(input, 75)
         assert ans == 238317474993392, "Got: {}".format(ans)
         print(f'Pt2::ans: {ans}')
 
