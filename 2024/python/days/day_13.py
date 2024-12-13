@@ -1,5 +1,6 @@
 from pathlib import Path
 from functools import cache
+from fractions import Fraction
 
 from days.template import part1
 from utils.misc import timer
@@ -80,6 +81,65 @@ def solve_game(a_xy, b_xy, p_xy):
         return a_cost + a_branch
     return min(a_branch + a_cost, b_branch + b_cost)
 
+def solve_game_grid(a_xy, b_xy, p_xy):
+    a_cost = 3
+    b_cost = 1
+    ax, ay = a_xy
+    bx, by = b_xy
+    px, py = p_xy
+
+    def coord_solve(ax, bx, px):
+        ax_row = [a_cost * (n // ax) if n % ax == 0 else None for n in range(px + 1)]
+        bx_row = []
+        for n in range(px + 1):
+            if n % bx == 0:
+                bx_row.append((n // bx) * b_cost)
+                continue
+            if ax_row[n - (n % bx)] is not None:
+                # todo: don't need the min?
+                bx_row.append(min(ax_row[n - (n % bx)], bx_row[n - (n % bx)]) + b_cost * (n // bx)) # todo: maximise the num b that can fit whilst still getting a solution
+            else:
+                bx_row.append(ax_row[n])
+        return bx_row[-1]
+    x_soln = coord_solve(ax, bx, px)
+    y_soln = coord_solve(ay, by, py)
+
+    if x_soln == y_soln:
+        return x_soln or 0
+    return 0
+
+def inverse(m):
+    assert len(m) == 2 and len(m[0]) == 2 and len(m[1]) == 2, "This fn can only invert 2x2 matrix"
+    a, b, c, d = m[0][0], m[0][1], m[1][0], m[1][1]
+    div = (a * d - b * c)
+    if div == 0:
+        return None
+    s = Fraction(1, div)
+    return [[s * d, -1 * s * b],
+            [-1 * s * c, s * a]]
+
+def vm(v, m):
+    assert len(m) == 2 and len(m[0]) == 2 and len(m[1]) == 2 and len(v) == 2, "Can only multiply 2 vector by 2x2 matrix"
+    return [v[0] * m[0][0] + v[1] * m[1][0], v[0] * m[0][1] + v[1] * m[1][1]]
+
+def solve_game_la(a_xy, b_xy, p_xy):
+    a_cost = 3
+    b_cost = 1
+    ax, ay = a_xy
+    bx, by = b_xy
+    px, py = p_xy
+    B = [[ax, ay], [bx, by]]
+    B_inv = inverse(B)
+    if B_inv is None:
+        return 0
+    else:
+        v_ans = vm([Fraction(px, 1), Fraction(py, 1)], B_inv)
+        ans = v_ans[0] * a_cost + v_ans[1] * b_cost
+        if ans.is_integer():
+            return int(ans)
+        else:
+            return 0
+
 
 def solve_with_offset(input, offset=0):
     games = parse_input(input)
@@ -89,18 +149,15 @@ def solve_with_offset(input, offset=0):
         a_xy, b_xy, (rpx, rpy) = game
         px = offset + rpx
         py = offset + rpy
-        cost = solve_game(a_xy, b_xy, (px, py))
-        tokens_spent += cost if cost > 0 else 0
+        tokens_spent += solve_game_la(a_xy, b_xy, (px, py))
     return tokens_spent
 
 
 def part1(input):
     return solve(input)
 
-
 def part2(input):
-    # offset = 10000000000000
-    offset = 10000
+    offset = 10000000000000
     return solve_with_offset(input, offset)
 
 def run():
@@ -126,10 +183,10 @@ def run():
         # assert ans == None, "Got: {}".format(ans)
         # print(f'Pt2(example)::ans: {ans}')
 
-    # with timer():
-    #     ans = part2(input)
+    with timer():
+        ans = part2(input)
     #     assert ans == None, "Got: {}".format(ans)
-    #     print(f'Pt2::ans: {ans}')
+        print(f'Pt2::ans: {ans}')
 
 
 if __name__ == "__main__":
