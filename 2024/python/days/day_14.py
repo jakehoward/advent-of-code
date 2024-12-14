@@ -29,9 +29,11 @@ def parse(input):
         robots.append(((int(px), int(py)), (int(vx), int(vy))))
     return robots
 
+
 def position_after(robot, iters, x_size, y_size):
     (px, py), (vx, vy) = robot
     return (px + iters * vx) % x_size, (py + iters * vy) % y_size
+
 
 def calc_safety_factor(robots, x_size, y_size):
     final_positions = [position_after(robot, 100, x_size, y_size) for robot in robots]
@@ -50,90 +52,163 @@ def calc_safety_factor(robots, x_size, y_size):
     return top_left * top_right * bottom_left * bottom_right
 
 
-def part1(input, x_size,  y_size):
+def part1(input, x_size, y_size):
     robots = parse(input)
     answer = calc_safety_factor(robots, x_size, y_size)
     return answer
 
 
-def xmas_tree_stepper(start_robots, grid, x_size, y_size):
+def robot_stepper(start_robots, x_size, y_size):
     robots = start_robots
     iters = 0
     while True:
         robots = [(position_after(robot, iters, x_size, y_size), robot[1]) for robot in robots]
-        # overlays = [(pos, 'X') for pos, vel in robots]
-        # print('Num iters:', iters)
-        # print(grid.as_string(overlays, True))
         yield iters, robots
         iters += 1
 
-# def is_xmas_tree(xys):
-#     ds = [(-1, 0), (-1, -1), (0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1)]
-#     positions = set(xys)
-#
-#     for attempt in list(set([random.choice(xys) for _ in range(10)])):
-#         target = len(positions) // 50
-#         pos = attempt
-#         seen = set()
-#         while len(seen) <= target:
-#             if len(seen) == target:
-#                 return True
-#             if pos not in positions:
-#                 break
-#             seen.add(pos)
-#             px, py = pos
-#             nbrs = [(px + dx, py + dy) for dx, dy in ds if (px + dx, py + dy) not in seen]
-#             if not nbrs:
-#                 break
-#             pos = nbrs[0]
-#     return False
 
-def straight_lines_2x2(xys, x_size, y_size):
-    positions = set(xys)
-    ds = [(0, 0), (1, 0), (0, 1), (1, 1)]
-    num_straight_lines = 0
-    for y in range(y_size):
-        for x in range(x_size):
-            if sum([1 for dx, dy in ds if (x + dx, y + dy) in positions]) == 2:
-                num_straight_lines += 1
-    return num_straight_lines
+def find_cycle_size(robot, x_size, y_size):
+    (start_px, start_py), (vx, vy) = robot
+    max_iters = 1_000_000
+    iters = 1
+    while iters < max_iters:
+        px = (start_px + iters * vx) % x_size
+        py = (start_py + iters * vy) % y_size
+        if px == start_px and py == start_py:
+            return iters
+        iters += 1
+    return -1
 
-def empty_nXn(xys, x_size, y_size, n):
-    positions = set(xys)
-    ds = [(0 + nx, 0 + ny) for nx in range(n) for ny in range(n)]
-    empty_count = 0
-    for y in range(0, y_size, n):
-        for x in range(0, x_size, n):
-            if all([(x + dx, y + dy) not in positions for dx, dy in ds]):
-                empty_count += 1
-    return empty_count
+
+def nothing_in_top_wedges(robots, x_size, y_size):
+    positions = set([pos for pos, _ in robots])
+    height = y_size - (y_size // 20)
+    top_size = x_size - (x_size // 3)
+    x_step = top_size // height
+    for y in range(height):
+        left_xys = [(x, y) for x in range(top_size - y * x_step)]
+        right_xys = [(x, y) for x in range((x_size // 2) + 1, (x_size // 2) + 1 + top_size + - y * x_step, 1)]
+        if any([p in positions for p in left_xys]) or any([p in positions for p in right_xys]):
+            return False
+    return True
+
+
+def find_wedges_population(robots, x_size):
+    positions = set([pos for pos, _ in robots])
+    top_size = (x_size - (x_size // 4)) // 2
+    x_step = 1
+    height = top_size
+    num_robots = 0
+    for y in range(height):
+        left_xys = [(x, y) for x in range(top_size - y * x_step)]
+        right_end = x_size
+        right_start = right_end - top_size - y * x_step
+        right_xys = [(x, y) for x in range(right_start, right_end, 1)]
+        num_robots += sum([1 for p in left_xys + right_xys if p in positions])
+    return num_robots
+
+def find_bottom_population(robots, x_size, y_size):
+    positions = [pos for pos, _ in robots]
+    top_left, top_right, bottom_left, bottom_right = 0, 0, 0, 0
+    for px, py in positions:
+        if px < (x_size // 2) - 10:
+            # if py < (y_size // 2):
+            #     top_left += 1
+            if py > y_size - 10:#(y_size // 2):
+                bottom_left += 1
+        elif px > (x_size // 2) + 10:
+            # if py < y_size // 2:
+            #     top_right += 1
+            if py > y_size - 10: #(y_size // 2):
+                bottom_right += 1
+    return bottom_left * bottom_right
+
+
+def find_population(robots, x_size, y_size):
+    positions = [pos for pos, _ in robots]
+    top, bottom = 0, 0
+    for px, py in positions:
+        if py < (y_size // 2):
+            bottom += 1
+        else:
+            top += 1
+    return bottom - top
+
+
+
+def find_num_contiguous(robots):
+    robot_pos = set([p for p, _ in robots])
+    seen = set()
+    num_contiguous = 0
+    while robot_pos:
+        pos = robot_pos.pop()
+        if pos in seen:
+            continue
+        num_contiguous += 1
+
+        # Flood fill from the position
+        ds = [(-1, 1), (0, 1), (1, 1),
+              (-1, 0), (1, 0),
+              (-1, -1), (0, -1), (1, -1)]
+        px, py = pos
+        nbrs = set([(px + dx, py + dy) for dx, dy in ds if (px + dx, py + dy) in robot_pos])
+        seen_nbrs = set()
+        while nbrs:
+            nbr = nbrs.pop()
+            if nbr in seen_nbrs:
+                continue
+            seen_nbrs.add(nbr)
+            nx, ny = nbr
+            nbrs = nbrs.union([(nx + dx, ny + dy) for dx, dy in ds if (nx + dx, ny + dy) in robot_pos])
+
+        seen.add(pos)
+        seen = seen.union(nbrs)
+    return num_contiguous
+
+def find_point_spacing_std_dev(robots, y_size):
+    robot_xs_by_row = {y: sorted([px for (px, py), _ in robots if py == y]) for y in range(y_size)}
+    x_spaces = [abs(x2 - x1) for xs in robot_xs_by_row.values() for x1, x2 in zip(xs, xs[1:])]
+    return stdev(x_spaces)
 
 
 def part2(input):
     start_robots = parse(input)
     x_size = 101
     y_size = 103
-    data = ['.'] * 101 * 103
-    grid = Grid(data, x_size, y_size)
-    robot_stepper = xmas_tree_stepper(start_robots, grid, x_size, y_size)
-    max_iters = 100_000
-    iter_empty_count_pairs = []
-    while True:
-        iters, robots = next(robot_stepper)
-        empty_count = empty_nXn([pxy for pxy, v in robots], x_size, y_size, 4)
-        iter_empty_count_pairs.append((iters, empty_count))
-        if empty_count == 352:
-            overlays = [(pos, 'X') for pos, vel in robots]
-            print(f'iters: {iters}')
-            print(grid.as_string(overlays, True))
-            break
-        if iters % 10000 == 0:
-            print(f'iters: {iters}')
-        if iters > max_iters:
-            break
+    grid = Grid(['.'] * (101 * 103), x_size, y_size)
+    cycle_sizes = [find_cycle_size(robot, x_size, y_size) for robot in start_robots]
+    cycle_size = -1
+    if len(set(cycle_sizes)) == 1:
+        cycle_size = cycle_sizes[0]
+    else:
+        raise Exception("Can't find cycle size")
+    print('Cycle size:', cycle_size)
+    step = robot_stepper(start_robots, x_size, y_size)
+    # stat_under_inspection = []
+    iter_population = []
+    for _ in range(cycle_size + 1):
+        iter, robots = next(step)
+        population = find_population(robots, x_size, y_size)
+        iter_population.append((iter, population))
+        # wedge_population = find_wedges_population(robots, x_size, y_size)
+        # num_contig_shapes = find_num_contiguous(robots)
+        # std_dev_x_spacing = find_point_spacing_std_dev(robots, y_size)
+        # stat_under_inspection.append(std_dev_x_spacing)
+        # if iter % 1000 == 0:
+        #     print('...iter:', iter)
+        # if num_contig_shapes < 90:
+        # if std_dev_x_spacing < 13:
+        #     overlays = [(pos, 'X') for pos, v in robots]
+        #     print('Iters:', iter)
+        #     print(grid.as_string(overlays, True))
+        #     return iter
+    for iter, pop in sorted(iter_population, key=lambda x: x[1], reverse=True)[:500]:
+        overlays = [(pos, 'X') for pos in [position_after(robot, iter, x_size, y_size) for robot in start_robots]]
+        print('Iters:', iter, 'Population/stat:', pop)
+        print(grid.as_string(overlays, True))
 
-    empty_counts = [line_count for iter, line_count in iter_empty_count_pairs]
-    print('mean:', mean(empty_counts), 'min:', min(empty_counts), 'max:', max(empty_counts), 'std:', stdev(empty_counts))
+    return -1
+    # print('mean:', mean(stat_under_inspection), 'min:', min(stat_under_inspection), 'max:', max(stat_under_inspection), 'std:', stdev(stat_under_inspection))
 
 
 def run():
@@ -146,7 +221,7 @@ def run():
 
     with timer():
         ans = part1(input, 101, 103)
-    #     assert ans == None, "Got: {}".format(ans)
+        #     assert ans == None, "Got: {}".format(ans)
         print(f'Pt1::ans: {ans}')
 
     # with timer():
