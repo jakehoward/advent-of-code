@@ -80,9 +80,42 @@ def find_cycle_size(robot, x_size, y_size):
         iters += 1
     return -1
 
+def xmas_tree_mask(robots, x_size, y_size):
+    positions = [p for p, _ in robots]
+    # five_pct = len(positions) / 20
+    top_left, top_right, bottom_left, bottom_right = 0, 0, 0, 0
+    for px, py in positions:
+        if px < x_size // 2:
+            if py < y_size // 2:
+                top_left += 1
+            elif py > (y_size // 2):
+                bottom_left += 1
+        elif px > (x_size // 2):
+            if py < y_size // 2:
+                top_right += 1
+            elif py > (y_size // 2):
+                bottom_right += 1
+    # top_similarity = 1/(abs(top_left - top_right) or 1)
+    # bottom_similarity = 1/(abs(bottom_left - bottom_right) or 1)
+    # bottom_top_difference = (bottom_left + bottom_right) - (top_left + top_right)
+    return 1 if top_left == top_right and bottom_left == bottom_right else 0
+    # return top_similarity + bottom_similarity # + bottom_top_difference
+    # return bottom_top_difference
+
+# def xmas_tree_mask(robots, x_size, y_size):
+#     positions = [p for p, v in robots]
+#     middle = x_size // 2 if x_size % 2 == 0 else (x_size // 2) + 1
+#     def mask(pos):
+#         px, py = pos
+#         x_left = middle - y_factor
+#         x_right = middle + y_factor
+#
+#
+#     in_mask = sum([mask(p) for p in positions])
+#     return in_mask
 
 def xmas_tree_score(robots, iter, x_size, y_size):
-    return iter
+    return xmas_tree_mask(robots, x_size, y_size)
 
 
 def part2(input):
@@ -102,14 +135,10 @@ def part2(input):
         iter, robots = next(step)
         heappush(xmas_score_to_robots_heap, (xmas_tree_score(robots, iter, x_size, y_size), (iter, robots)))
 
-    for score, (iter, robots) in nlargest(5, xmas_score_to_robots_heap):
+    for score, (iter, robots) in nlargest(25, xmas_score_to_robots_heap):
         print('Iter:', iter, 'Score:', score)
         overlays = [(p, 'O') for p, v in robots]
         print(grid.as_string(overlays, True))
-
-    # todo: create algo for finding xmas tree frame (min/max heap)
-    #       ideas:
-    #         - Xmas tree mask => score
 
     return -1
 
