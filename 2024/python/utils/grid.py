@@ -57,7 +57,7 @@ class Grid:
     def in_bounds_p(self, point):
         return self.in_bounds(point[0], point[1])
 
-    def as_string(self, overlays=[]):
+    def as_string(self, overlays=[], allow_duplicates=False):
         """
         Get the grid as a string, presumably for printing
         :param overlays: [((x, y), char), ...]
@@ -65,7 +65,7 @@ class Grid:
         """
         overlay_lookup = {}
         for point, char in overlays:
-            if point in overlay_lookup:
+            if point in overlay_lookup and not allow_duplicates:
                 raise ValueError(f"Overlay {(point, char)} already exists: {overlay_lookup[point]}")
             overlay_lookup[point] = char
 
