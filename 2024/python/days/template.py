@@ -20,21 +20,25 @@ def run():
         ans = part1(example)
         # assert ans == None, "Got: {}".format(ans)
         print(f'Pt1(example)::ans: {ans}')
+        ans = None
 
     # with timer():
     #     ans = part1(input)
     #     assert ans == None, "Got: {}".format(ans)
     #     print(f'Pt1::ans: {ans}')
+    #     ans = None
 
     # with timer():
     #     ans = part2(example)
     #     assert ans == None, "Got: {}".format(ans)
     #     print(f'Pt2(example)::ans: {ans}')
+    #     ans = None
 
     # with timer():
     #     ans = part2(input)
     #     assert ans == None, "Got: {}".format(ans)
     #     print(f'Pt2::ans: {ans}')
+    #     ans = None
 
 
 if __name__ == "__main__":
