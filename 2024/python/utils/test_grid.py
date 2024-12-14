@@ -243,6 +243,7 @@ class TestGridAsString:
     def test_as_string_with_overlays(self):
         g = make_grid('12\n34', as_ints=True, tile_directions=all_dirs)
         assert (g.as_string(overlays=[((1,1), '#')]) == '12\n3#')
+        assert (g.as_string(overlays=[((0,0), 'a'), ((1, 0), 'b'), ((0, 1), 'c'),((1, 1), 'd')]) == 'ab\ncd')
 
 class TestGridAs2DArray:
     def test_as_2d_array(self):
