@@ -48,9 +48,9 @@ def part1(input):
             dy = antenna_a[1] - antenna_b[1]
             anti_1 = (antenna_a[0] + dx, antenna_a[1] + dy)
             anti_2 = (antenna_b[0] - dx, antenna_b[1] - dy)
-            if grid.in_bounds_p(anti_1):
+            if grid.in_bounds(anti_1):
                 antinodes.add(anti_1)
-            if grid.in_bounds_p(anti_2):
+            if grid.in_bounds(anti_2):
                 antinodes.add(anti_2)
 
     return len(antinodes)
@@ -70,10 +70,10 @@ def part2(input):
             anti_1 = (antenna_a[0] + dx, antenna_a[1] + dy)
             anti_2 = (antenna_b[0] - dx, antenna_b[1] - dy)
 
-            while grid.in_bounds_p(anti_1) or grid.in_bounds_p(anti_2):
-                if grid.in_bounds_p(anti_1):
+            while grid.in_bounds(anti_1) or grid.in_bounds(anti_2):
+                if grid.in_bounds(anti_1):
                     antinodes.add(anti_1)
-                if grid.in_bounds_p(anti_2):
+                if grid.in_bounds(anti_2):
                     antinodes.add(anti_2)
                 anti_1 = (anti_1[0] + dx, anti_1[1] + dy)
                 anti_2 = (anti_2[0] - dx, anti_2[1] - dy)

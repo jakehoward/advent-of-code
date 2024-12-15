@@ -37,10 +37,10 @@ def find_guard_positions(grid, guard_start, start_direction):
     pos = guard_start
     direction = start_direction
     seen = set()
-    while grid.in_bounds(pos[0], pos[1]):
+    while grid.in_bounds_xy(pos[0], pos[1]):
         seen.add(pos)
         next_pos = add(pos, direction)
-        if grid.in_bounds(next_pos[0], next_pos[1]) and grid.at(next_pos[0], next_pos[1]) == '#':
+        if grid.in_bounds_xy(next_pos[0], next_pos[1]) and grid.at_xy(next_pos[0], next_pos[1]) == '#':
             direction = next_direction(direction)
         else:
             pos = next_pos
@@ -60,17 +60,17 @@ def is_loop(grid, start_pos, start_direction, synthetic_obstacle_point):
     seen = set()
 
     def is_obstacle(p):
-        return grid.at_p(p) == '#' or p == synthetic_obstacle_point
+        return grid.at(p) == '#' or p == synthetic_obstacle_point
 
     direction = start_direction
     pos = start_pos
-    while grid.in_bounds_p(pos):
+    while grid.in_bounds(pos):
         if (pos, direction) in seen:
             return True
         seen.add((pos, direction))
 
         next_pos = add(pos, direction)
-        if grid.in_bounds_p(next_pos) and is_obstacle(next_pos):
+        if grid.in_bounds(next_pos) and is_obstacle(next_pos):
             direction = next_direction(direction)
         else:
             pos = next_pos

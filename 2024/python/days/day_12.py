@@ -103,17 +103,17 @@ def calculate_num_sides(region_points, grid=None):
 
 
 def calculate_price(grid, point, bulk_discount):
-    region_id = grid.at_p(point)
+    region_id = grid.at(point)
     region_points = set()
     points_to_search = {point}
     perimeter = 0
 
     while points_to_search:
         p = points_to_search.pop()
-        if grid.at_p(p) == region_id:
+        if grid.at(p) == region_id:
             region_points.add(p)
             nbr_xys = grid.get_nbr_xys(p[0], p[1])
-            perimeter += (len([p for p in nbr_xys if grid.at_p(p) != region_id]) + (4 - len(nbr_xys)))
+            perimeter += (len([p for p in nbr_xys if grid.at(p) != region_id]) + (4 - len(nbr_xys)))
             points_to_search = points_to_search.union({p for p in nbr_xys if p not in region_points})
     num_sides = calculate_num_sides(region_points, grid) if bulk_discount else -1
     return {'price': len(region_points) * num_sides if bulk_discount else len(region_points) * perimeter,

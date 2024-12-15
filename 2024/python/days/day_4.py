@@ -40,7 +40,7 @@ def part1(input):
     while point[1] <= grid.y_max:
         for d in dirs:
             path = [point, add(point, d), add(point, mul(d, 2)), add(point, mul(d, 3))]
-            letters = list(map(lambda p: grid.at(p[0], p[1]) if grid.in_bounds(p[0], p[1]) else None, path))
+            letters = list(map(lambda p: grid.at_xy(p[0], p[1]) if grid.in_bounds_xy(p[0], p[1]) else None, path))
             if letters == XMAS:
                 answer += 1
         point = (point[0] + 1 if point[0] < grid.x_max else 0, point[1] if point[0] < grid.x_max else point[1] + 1)
@@ -104,7 +104,7 @@ def part2(input):
                     (0, 1), (1, 1), (2, 1),
                     (0, 2), (1, 2), (2, 2)]
         sub_grid_points = [add(point, p) for p in sub_grid]
-        sub_grid_at_point = [grid.at(p[0], p[1]) if grid.in_bounds(p[0], p[1]) else None for p in sub_grid_points]
+        sub_grid_at_point = [grid.at_xy(p[0], p[1]) if grid.in_bounds_xy(p[0], p[1]) else None for p in sub_grid_points]
 
         for mas in x_mases:
             if sub_grid_at_point[::2] == mas[::2]:

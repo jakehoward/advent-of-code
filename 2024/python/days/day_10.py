@@ -24,7 +24,7 @@ def part1(input):
     trailheads = []
     for y in range(grid._y_size):
         for x in range(grid._x_size):
-            if grid.at(x, y) == 0:
+            if grid.at_xy(x, y) == 0:
                 trailheads.append((x, y))
 
     point_to_tops_reached = {}
@@ -32,13 +32,13 @@ def part1(input):
         if point in point_to_tops_reached:
             return point_to_tops_reached[point]
 
-        val = grid.at_p(point)
+        val = grid.at(point)
         if val == 9:
             return set([point])
         nbr_xys = grid.get_nbr_xys(point[0], point[1])
         tops_reached = set()
         for nbr_point in nbr_xys:
-            if grid.at_p(nbr_point) == val + 1:
+            if grid.at(nbr_point) == val + 1:
                 tops_reached = tops_reached.union(iter(nbr_point))
         point_to_tops_reached[point] = tops_reached
         return tops_reached
@@ -54,7 +54,7 @@ def part2(input):
     trailheads = []
     for y in range(grid._y_size):
         for x in range(grid._x_size):
-            if grid.at(x, y) == 0:
+            if grid.at_xy(x, y) == 0:
                 trailheads.append((x, y))
 
     point_to_num_routes = {}
@@ -62,13 +62,13 @@ def part2(input):
         if point in point_to_num_routes:
             return point_to_num_routes[point]
 
-        val = grid.at_p(point)
+        val = grid.at(point)
         if val == 9:
             return 1
         nbr_xys = grid.get_nbr_xys(point[0], point[1])
         num_routes = 0
         for nbr_point in nbr_xys:
-            if grid.at_p(nbr_point) == val + 1:
+            if grid.at(nbr_point) == val + 1:
                 num_routes += iter(nbr_point)
         point_to_num_routes[point] = num_routes
         return num_routes

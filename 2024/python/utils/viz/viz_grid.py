@@ -67,7 +67,7 @@ def viz_grid(grid, value_to_color={0: Color.Black, 1: Color.White}):
         for y in range(grid._y_size):
             for x in range(grid._x_size):
                 rect = pygame.Rect(x * cell_size, y * cell_size + y_start, cell_size, cell_size)
-                color = value_to_color.get(grid.at(x, y), Color.Gray).value
+                color = value_to_color.get(grid.at_xy(x, y), Color.Gray).value
                 pygame.draw.rect(window, color, rect, 0)
                 pygame.draw.rect(window, Color.Green.value, rect, 1)  # Grid lines
 
