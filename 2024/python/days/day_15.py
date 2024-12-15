@@ -123,9 +123,7 @@ def print_grid(robot_xy, walls, boxes, x_size, y_size):
                                 default='.').as_string(overlays))
 
 
-def part2(input):
-    # DEBUG = True
-    DEBUG = False
+def part2(input, DEBUG=False):
     grid, dirs = parse(input)
     start = None
     boxes = set()
@@ -186,6 +184,7 @@ def part2(input):
                         if (bx + 1, ny) in boxes:
                             extra_boxes_to_move.append((bx + 1, ny))
                             found_box = True
+                        extra_boxes_to_move = list(set(extra_boxes_to_move))
                 boxes_to_move += extra_boxes_to_move
                 iters += 1
                 if not found_box:
@@ -254,8 +253,8 @@ def run():
         ans = None
 
     with timer():
-        ans = part2(input)
-        # assert ans == None, "Got: {}".format(ans)
+        ans = part2(input, False)
+        assert ans == 1458740, "Got: {}".format(ans)
         print(f'Pt2::ans: {ans}')
         ans = None
 
