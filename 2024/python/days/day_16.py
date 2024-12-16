@@ -107,6 +107,7 @@ def part1(input):
     answer = shortest_path(grid, start, end)
     return answer
 
+
 # https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm
 # (Indentation mine)
 #  1 function Dijkstra(Graph, source):
@@ -134,28 +135,68 @@ def dijkstra(grid, start, end):
     Q = []
     start_to_vertex_cost = {}
     vertex_to_prev_vertices = {}
-    for vertex, _ in grid:
-        if vertex != start:
-            start_to_vertex_cost[vertex] = math.inf
-            vertex_to_prev_vertices[vertex] = []
-            heappush(Q, (start_to_vertex_cost[vertex], vertex))
+    for point, _ in grid:
+        if grid.at(point) != '#':
+            for direction in [up, down, left, right]:
+                vertex = (point, direction)
+                start_to_vertex_cost[vertex] = math.inf
+                vertex_to_prev_vertices[vertex] = []
+                heappush(Q, (start_to_vertex_cost[vertex], vertex))
 
-    start_to_vertex_cost[start] = 0
+    start_to_vertex_cost[(start, right)] = 0
+    heappush(Q, (0, (start, right)))
+
     while Q:
         cost, vertex = heappop(Q)
 
-        px, py = vertex
-        nbrs = [n for n in grid.get_nbr_xys(px, py) if grid.at(n) != '#' and n in {vertex for cost, vertex in Q}]
-        for n in nbrs:
-            nbr_cost = cost + 1 # todo - take account of direction
-            if nbr_cost == start_to_vertex_cost[n]:
-                vertex_to_prev_vertices[n].append(vertex)
-                heappush(Q, (nbr_cost, n))
-            elif nbr_cost < start_to_vertex_cost[n]:
-                start_to_vertex_cost[n] = nbr_cost
-                vertex_to_prev_vertices[n] = [vertex]
-                heappush(Q, (nbr_cost, n))
+        if cost > start_to_vertex_cost[(end, up)] or cost > start_to_vertex_cost[(end, down)] or cost > \
+                start_to_vertex_cost[(end, left)] or cost > start_to_vertex_cost[(end, right)]:
+            continue
+        point, direction = vertex
+
+        px, py = point
+        nbrs = []
+        if direction == up:
+            if grid.at((px, py - 1)) != '#':
+                nbrs.append((cost + 1, ((px, py - 1), direction)))
+            nbrs.append((cost + 1000, (point, left)))
+            nbrs.append((cost + 1000, (point, right)))
+        if direction == down:
+            if grid.at((px, py + 1)) != '#':
+                nbrs.append((cost + 1, ((px, py + 1), direction)))
+            nbrs.append((cost + 1000, (point, left)))
+            nbrs.append((cost + 1000, (point, right)))
+        if direction == left:
+            if grid.at((px - 1, py)) != '#':
+                nbrs.append((cost + 1, ((px - 1, py), direction)))
+            nbrs.append((cost + 1000, (point, up)))
+            nbrs.append((cost + 1000, (point, down)))
+        if direction == right:
+            if grid.at((px + 1, py)) != '#':
+                nbrs.append((cost + 1, ((px + 1, py), direction)))
+            nbrs.append((cost + 1000, (point, up)))
+            nbrs.append((cost + 1000, (point, down)))
+        for nbr_cost, nbr_vertex in nbrs:
+            if nbr_cost == start_to_vertex_cost[nbr_vertex]:
+                vertex_to_prev_vertices[nbr_vertex].append(vertex)
+                heappush(Q, (nbr_cost, nbr_vertex))
+            elif nbr_cost < start_to_vertex_cost[nbr_vertex]:
+                start_to_vertex_cost[nbr_vertex] = nbr_cost
+                vertex_to_prev_vertices[nbr_vertex] = [vertex]
+                heappush(Q, (nbr_cost, nbr_vertex))
     return start_to_vertex_cost, vertex_to_prev_vertices
+
+
+def dfs(pos_to_prev_pos, from_point, to_point, seen):
+    if from_point == to_point:
+        seen.add(to_point)
+        return
+    for opt in pos_to_prev_pos[from_point]:
+        if opt in seen:
+            continue
+        seen.add(opt)
+        dfs(pos_to_prev_pos, opt, to_point, seen)
+    return [p for p, _ in seen]
 
 
 def part2(input):
@@ -167,8 +208,12 @@ def part2(input):
         if v == 'E':
             end = p
     start_to_pos_cost, pos_to_prev_pos = dijkstra(grid, start, end)
-    # print("Num paths:", len(paths))
-    return len(set([p for ps in pos_to_prev_pos.values() for p in ps]))
+    all_points = set()
+    for end in [pos for pos in pos_to_prev_pos.keys() if pos[0] == end]:
+        print(end)
+        points = set(dfs(pos_to_prev_pos, end, (start, right), set()))
+        all_points = all_points.union(points)
+    return len(set(all_points))
 
 
 def run():
@@ -194,11 +239,11 @@ def run():
             print(f'Pt2(example)::ans: {ans}')
             ans = None
 
-    # with timer():
-    #     ans = part2(input)
-    #     assert ans == None, "Got: {}".format(ans)
-    #     print(f'Pt2::ans: {ans}')
-    #     ans = None
+    with timer():
+        ans = part2(input)
+        #     assert ans == None, "Got: {}".format(ans)
+        print(f'Pt2::ans: {ans}')
+        ans = None
 
 
 if __name__ == "__main__":
