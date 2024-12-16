@@ -1,5 +1,6 @@
 from pathlib import Path
 from heapq import heappush, heappop
+import math
 
 from utils.grid import make_grid
 from utils.misc import timer
@@ -106,10 +107,68 @@ def part1(input):
     answer = shortest_path(grid, start, end)
     return answer
 
+# https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm
+# (Indentation mine)
+#  1 function Dijkstra(Graph, source):
+#  2
+#  3 for each vertex v in Graph.Vertices:
+#  4    dist[v] ← INFINITY
+#  5    prev[v] ← UNDEFINED
+#  6    add v to Q
+#  7    dist[source] ← 0
+#  8
+#  9 while Q is not empty:
+# 10    u ← vertex in Q with minimum dist[u]
+# 11    remove u from Q
+# 12
+# 13    for each neighbor v of u still in Q:
+# 14        alt ← dist[u] + Graph.Edges(u, v)
+# 15        if alt < dist[v]:
+# 16        dist[v] ← alt
+# 17        prev[v] ← u
+# 18        add v to Q with distance alt
+# 19
+# 20 return dist[], prev[]
+
+def dijkstra(grid, start, end):
+    Q = []
+    start_to_vertex_cost = {}
+    vertex_to_prev_vertices = {}
+    for vertex, _ in grid:
+        if vertex != start:
+            start_to_vertex_cost[vertex] = math.inf
+            vertex_to_prev_vertices[vertex] = []
+            heappush(Q, (start_to_vertex_cost[vertex], vertex))
+
+    start_to_vertex_cost[start] = 0
+    while Q:
+        cost, vertex = heappop(Q)
+
+        px, py = vertex
+        nbrs = [n for n in grid.get_nbr_xys(px, py) if grid.at(n) != '#' and n in {vertex for cost, vertex in Q}]
+        for n in nbrs:
+            nbr_cost = cost + 1 # todo - take account of direction
+            if nbr_cost == start_to_vertex_cost[n]:
+                vertex_to_prev_vertices[n].append(vertex)
+                heappush(Q, (nbr_cost, n))
+            elif nbr_cost < start_to_vertex_cost[n]:
+                start_to_vertex_cost[n] = nbr_cost
+                vertex_to_prev_vertices[n] = [vertex]
+                heappush(Q, (nbr_cost, n))
+    return start_to_vertex_cost, vertex_to_prev_vertices
+
 
 def part2(input):
-    answer = '...'
-    return answer
+    grid = make_grid(input)
+    start, end = None, None
+    for p, v in grid:
+        if v == 'S':
+            start = p
+        if v == 'E':
+            end = p
+    start_to_pos_cost, pos_to_prev_pos = dijkstra(grid, start, end)
+    # print("Num paths:", len(paths))
+    return len(set([p for ps in pos_to_prev_pos.values() for p in ps]))
 
 
 def run():
@@ -135,11 +194,11 @@ def run():
             print(f'Pt2(example)::ans: {ans}')
             ans = None
 
-    with timer():
-        ans = part2(input)
+    # with timer():
+    #     ans = part2(input)
     #     assert ans == None, "Got: {}".format(ans)
-        print(f'Pt2::ans: {ans}')
-        ans = None
+    #     print(f'Pt2::ans: {ans}')
+    #     ans = None
 
 
 if __name__ == "__main__":
