@@ -4,6 +4,7 @@ import math
 
 from utils.grid import make_grid
 from utils.misc import timer
+from utils.path_finding import solve_graph_for_single_node
 from utils.read import read_input
 
 example = """
@@ -108,82 +109,26 @@ def part1(input):
     return answer
 
 
-# https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm
-# (Indentation mine)
-#  1 function Dijkstra(Graph, source):
-#  2
-#  3 for each vertex v in Graph.Vertices:
-#  4    dist[v] ← INFINITY
-#  5    prev[v] ← UNDEFINED
-#  6    add v to Q
-#  7    dist[source] ← 0
-#  8
-#  9 while Q is not empty:
-# 10    u ← vertex in Q with minimum dist[u]
-# 11    remove u from Q
-# 12
-# 13    for each neighbor v of u still in Q:
-# 14        alt ← dist[u] + Graph.Edges(u, v)
-# 15        if alt < dist[v]:
-# 16        dist[v] ← alt
-# 17        prev[v] ← u
-# 18        add v to Q with distance alt
-# 19
-# 20 return dist[], prev[]
+def dijkstra(grid, start):
+    def get_all_vertices(grid):
+        vertices = []
+        for point, _ in grid:
+            if grid.at(point) != '#':
+                for direction in [up, down, left, right]:
+                    vertex = (point, direction)
+                    vertices.append(vertex)
+        return vertices
 
-def dijkstra(grid, start, end):
-    Q = []
-    start_to_vertex_cost = {}
-    vertex_to_prev_vertices = {}
-    for point, _ in grid:
-        if grid.at(point) != '#':
-            for direction in [up, down, left, right]:
-                vertex = (point, direction)
-                start_to_vertex_cost[vertex] = math.inf
-                vertex_to_prev_vertices[vertex] = []
-                heappush(Q, (start_to_vertex_cost[vertex], vertex))
-
-    start_to_vertex_cost[(start, right)] = 0
-    heappush(Q, (0, (start, right)))
-
-    while Q:
-        cost, vertex = heappop(Q)
-
-        if cost > start_to_vertex_cost[(end, up)] or cost > start_to_vertex_cost[(end, down)] or cost > \
-                start_to_vertex_cost[(end, left)] or cost > start_to_vertex_cost[(end, right)]:
-            continue
-        point, direction = vertex
-
+    def get_nbrs(grid, vertex):
+        point, _ = vertex
         px, py = point
-        nbrs = []
-        if direction == up:
-            if grid.at((px, py - 1)) != '#':
-                nbrs.append((cost + 1, ((px, py - 1), direction)))
-            nbrs.append((cost + 1000, (point, left)))
-            nbrs.append((cost + 1000, (point, right)))
-        if direction == down:
-            if grid.at((px, py + 1)) != '#':
-                nbrs.append((cost + 1, ((px, py + 1), direction)))
-            nbrs.append((cost + 1000, (point, left)))
-            nbrs.append((cost + 1000, (point, right)))
-        if direction == left:
-            if grid.at((px - 1, py)) != '#':
-                nbrs.append((cost + 1, ((px - 1, py), direction)))
-            nbrs.append((cost + 1000, (point, up)))
-            nbrs.append((cost + 1000, (point, down)))
-        if direction == right:
-            if grid.at((px + 1, py)) != '#':
-                nbrs.append((cost + 1, ((px + 1, py), direction)))
-            nbrs.append((cost + 1000, (point, up)))
-            nbrs.append((cost + 1000, (point, down)))
-        for nbr_cost, nbr_vertex in nbrs:
-            if nbr_cost == start_to_vertex_cost[nbr_vertex]:
-                vertex_to_prev_vertices[nbr_vertex].append(vertex)
-                heappush(Q, (nbr_cost, nbr_vertex))
-            elif nbr_cost < start_to_vertex_cost[nbr_vertex]:
-                start_to_vertex_cost[nbr_vertex] = nbr_cost
-                vertex_to_prev_vertices[nbr_vertex] = [vertex]
-                heappush(Q, (nbr_cost, nbr_vertex))
+        return [(n, get_direction(point, n)) for n in grid.get_nbr_xys(px, py) if grid.at(n) != '#']
+
+    def get_cost(from_vertex, to_vertex):
+        return cost_to_move(from_vertex[0], from_vertex[1], to_vertex[0])
+
+    start_to_vertex_cost, vertex_to_prev_vertices = solve_graph_for_single_node(grid, get_all_vertices, get_nbrs, get_cost, (start, right))
+
     return start_to_vertex_cost, vertex_to_prev_vertices
 
 
@@ -207,11 +152,14 @@ def part2(input):
             start = p
         if v == 'E':
             end = p
-    start_to_pos_cost, pos_to_prev_pos = dijkstra(grid, start, end)
+    print('Start D')
+    start_to_pos_cost, pos_to_prev_pos = dijkstra(grid, start)
+    print('End D')
     all_points = set()
-    for end in [pos for pos in pos_to_prev_pos.keys() if pos[0] == end]:
-        print(end)
-        points = set(dfs(pos_to_prev_pos, end, (start, right), set()))
+    end_vertices = [pos for pos in pos_to_prev_pos.keys() if pos[0] == end]
+    min_cost = min([start_to_pos_cost[e] for e in end_vertices])
+    for end in [e for e in end_vertices if start_to_pos_cost[e] == min_cost]:
+        points = set(dfs(pos_to_prev_pos, end, (start, right), {end}))
         all_points = all_points.union(points)
     return len(set(all_points))
 
@@ -224,7 +172,7 @@ def run():
             ans = part1(ex)
             assert ans == expected, "Expected: {}, Got: {}".format(expected, ans)
             print(f'Pt1(example)::ans: {ans}')
-            ans = None
+        ans = None
 
     with timer():
         ans = part1(input)
@@ -241,7 +189,7 @@ def run():
 
     with timer():
         ans = part2(input)
-        #     assert ans == None, "Got: {}".format(ans)
+    #     #     assert ans == None, "Got: {}".format(ans)
         print(f'Pt2::ans: {ans}')
         ans = None
 
