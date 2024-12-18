@@ -69,8 +69,15 @@ def part1(input, size, num_bytes):
     return shortest_path(grid, start, end)
 
 def part2(input):
-    answer = '...'
-    return answer
+    start = (0, 0)
+    end = (70, 70)
+    # num_bytes = 12 # 1024
+    size = 71
+    byte_positions = parse(input)
+    for num_bytes in range(1, len(byte_positions)):
+        grid = make_grid_with_points({'#': set(byte_positions[0:num_bytes])}, size, size, '.')
+        if shortest_path(grid, start, end) is None:
+            return byte_positions[0:num_bytes][-1]
 
 def run():
     day = Path(__file__).name.split('.')[0].split('_')[-1]
@@ -93,11 +100,11 @@ def run():
     #     print(f'Pt2(example)::ans: {ans}')
     #     ans = None
 
-    # with timer():
-    #     ans = part2(input)
+    with timer():
+        ans = part2(input)
     #     assert ans == None, "Got: {}".format(ans)
-    #     print(f'Pt2::ans: {ans}')
-    #     ans = None
+        print(f'Pt2::ans: {ans}')
+        ans = None
 
 
 if __name__ == "__main__":
