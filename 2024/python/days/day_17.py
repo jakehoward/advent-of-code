@@ -128,54 +128,55 @@ def fast_compute(a, b, c, symbols):
             raise Exception('Not a valid combo op: 7')
 
     instr = 0
+    abc = []
     while instr < len(symbols):
-        if symbols[instr] == 0:
-            op = symbols[instr + 1]
+        op = symbols[instr + 1]
+        opcode = symbols[instr]
+
+        if opcode == 0:
             A = A // (2 ** combo(op))
             instr += 2
             continue
 
-        if symbols[instr] == 1:
-            op = symbols[instr + 1]
+        if opcode == 1:
             B = B ^ op
             instr += 2
             continue
 
-        if symbols[instr] == 2:
-            op = symbols[instr + 1]
+        if opcode == 2:
             B = combo(op) % 8
             instr += 2
             continue
 
-        if symbols[instr] == 3:
-            op = symbols[instr + 1]
+        if opcode == 3:
             if A != 0:
                 instr = op
             else:
                 instr += 2
             continue
 
-        if symbols[instr] == 4:
+        if opcode == 4:
             B = B ^ C
             instr += 2
             continue
 
-        if symbols[instr] == 5:
-            op = symbols[instr + 1]
+        if opcode == 5:
             out_buffer.append(combo(op) % 8)
-            if symbols[0:len(out_buffer)] != out_buffer:
-                instr = len(symbols)  # halt condition
+            abc.append((A, B, C))
+            if out_buffer != symbols[0:len(out_buffer)]:
+                if len(out_buffer) > 7:
+                    print(abc)
+                    print('Failed::', 'A:', A, 'B:', B, 'C:', C, symbols, out_buffer)
+                break
             instr += 2
             continue
 
-        if symbols[instr] == 6:
-            op = symbols[instr + 1]
+        if opcode == 6:
             B = A // (2 ** combo(op))
             instr += 2
             continue
 
-        if symbols[instr] == 8:
-            op = symbols[instr + 1]
+        if opcode == 7:
             C = A // (2 ** combo(op))
             instr += 2
             continue
@@ -185,31 +186,26 @@ def fast_compute(a, b, c, symbols):
 
 def part1(input):
     A, B, C, program = input
+    symbols = [int(c) for c in program.split(',')]
     return compute(A, B, C, program)
 
 
-
-def part2(input):
-    # for m in range(1, 18):
-    #     print(m, [ x % m for x in [2707053, 2707135, 6901357, 6901439, 11095661, 11095743, 15289965, 15290047, 19484269, 19484269, 19484351, 19484351, 23678573, 23678655, 27872877, 27872959, 32067181, 32067263, 32132717, 32132799, 36261485, 36261567, 40455789, 40455871, 44650093, 44650175, 48844397, 48844479, 53038701, 53038783, 57233005, 57233087, 61427309, 61427391, 65621613, 65621695, 65687149, 65687231, 69815917, 69815999, 74010221, 74010303, 78204525, 78204607]])
+def part2(input, example=False):
     a, B, C, program = input
     symbols = [int(c) for c in program.split(',')]
     print('Searching for:', program)
-    # for A in range(100_000_000):
-    # for A in reversed([2707053, 2707135, 6901357, 6901439, 11095661, 11095743, 15289965, 15290047, 19484269, 19484269, 19484351, 19484351, 23678573, 23678655, 27872877, 27872959, 32067181, 32067263, 32132717, 32132799, 36261485, 36261567, 40455789, 40455871, 44650093, 44650175, 48844397, 48844479, 53038701, 53038783, 57233005, 57233087, 61427309, 61427391, 65621613, 65621695, 65687149, 65687231, 69815917, 69815999, 74010221, 74010303, 78204525, 78204607]):
-    A = 8**16
-    while True:
-        # m = A % 8
-        # if m != 5 and m != 7:
-        #     continue
-        # if (3 ^ (A // (2**6))) % 8 != 2 and (1 ^ (A // (2**4))) % 8 != 2:
-        #     A += 1
-        #     continue
-        if A % 1_000_000 == 0:
+    # A = 8**15 if not example else 0
+    # while A < (8**16) - 1:
+    # Last value of A must be 0 or 8 (so that B % 8 prints 0)
+    # - which must be zero so it exits the loop
+    # it gets divided down by 2**3 on each printing of a character
+    # For the last value to be zero, it must be 1-7 in order to be divided by 8
+    # and become 0, so should be in the range
+    A = 1 * (8*14)
+    while A < (7 * (8**14)):
+        if A % 1_000_000 == 0: # check == (7*(8**14))
             print('A:', A)
         out = fast_compute(A, B, C, symbols)
-        # if A < 100:
-        #     print('A:', A, 'out:', out)
         if out == program:
             print('!! Answer is:', A)
             return A
@@ -217,37 +213,25 @@ def part2(input):
     print('A_replicator not found')
     return None
 
-    # a, B, C, program = input
-    # print('Analysis:', compute(117740, B, C, program, False))
-    # print('Analysis:', compute(1, B, C, program, False))
-    # print('Analysis:', compute(1, B, C, program, False))
-    # print('Analysis:', compute(2, B, C, program, False))
-    # print('Analysis:', compute(3, B, C, program, False))
-    # print('Analysis:', compute(4, B, C, program, False))
-    # print('Analysis:', compute(5, B, C, program, False))
-    # print('Analysis:', compute(6, B, C, program, False))
-    # print('Analysis:', compute(7, B, C, program, False))
-    # return None
-
 
 def run():
     # day = Path(__file__).name.split('.')[0].split('_')[-1]
     # input = read_input(day)
     input = parsed_full_input
-    # with timer():
-    #     ans = part1(parsed_example)
-    #     assert ans == '4,6,3,5,6,3,5,2,1,0', "Got: {}".format(ans)
-    #     print(f'Pt1(example)::ans: {ans}')
-    #     ans = None
+    with timer():
+        ans = part1(parsed_example)
+        assert ans == '4,6,3,5,6,3,5,2,1,0', "Got: {}".format(ans)
+        print(f'Pt1(example)::ans: {ans}')
+        ans = None
+
+    with timer():
+        ans = part1(input)
+        assert ans == '6,2,7,2,3,1,6,0,5', "Got: {}".format(ans)
+        print(f'Pt1::ans: {ans}')
+        ans = None
 
     # with timer():
-    #     ans = part1(input)
-    #     assert ans == '6,2,7,2,3,1,6,0,5', "Got: {}".format(ans)
-    #     print(f'Pt1::ans: {ans}')
-    #     ans = None
-
-    # with timer():
-    #     ans = part2(parsed_example_2)
+    #     ans = part2(parsed_example_2, True)
     #     assert ans == 117440, "Got: {}".format(ans)
     #     print(f'Pt2(example)::ans: {ans}')
     #     ans = None
