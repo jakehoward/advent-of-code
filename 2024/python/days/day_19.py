@@ -31,8 +31,7 @@ def is_possible(towels, combo):
         return True
     for towel in towels:
         if combo.startswith(towel):
-            result = is_possible(towels, combo[len(towel):])
-            if result:
+            if is_possible(towels, combo[len(towel):]):
                 return True
     return False
 

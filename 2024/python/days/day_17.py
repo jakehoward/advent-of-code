@@ -32,10 +32,9 @@ Program: 2,4,1,3,7,5,1,5,0,3,4,3,5,5,3,0""".strip()
 parsed_full_input = (47006051, 0, 0, '2,4,1,3,7,5,1,5,0,3,4,3,5,5,3,0')
 
 
-def compute(a, b, c, program):
+def compute(a, b, c, symbols):
     A, B, C = a, b, c
     instr = 0
-    symbols = [int(c) for c in program.split(',')]
     out_buffer = []
 
     def combo(op):
@@ -107,7 +106,7 @@ def compute(a, b, c, program):
     while instr < len(symbols):
         instructions[symbols[instr]](symbols[instr + 1])
 
-    return ",".join([str(x) for x in out_buffer])
+    return out_buffer
 
 
 def fast_compute(a, b, c, symbols):
@@ -186,53 +185,36 @@ def fast_compute(a, b, c, symbols):
 
 def part1(input):
     A, B, C, program = input
-    return compute(A, B, C, program)
+    symbols = [int(c) for c in program.split(',')]
+    out_buffer = compute(A, B, C, symbols)
+    return ','.join(map(str, out_buffer))
 
 
 # Last value of B must be 0 or 8 (so that B % 8 prints 0)
-# - which must be zero so it exits the loop
-# it gets divided down by 2**3 on each printing of a character
-# For the last value to be zero, it must be 1-7 in order to be divided by 8
-# and become 0, so should be in the range
+# A must be zero so that it exits the loop. That means last value of A must be 0 - 7 (so A // (2**3) -> 0)
+# It gets divided down by 2**3 on each loop (and you get a character printed per loop)
+# => Last A is 6 for my program
 def part2(input, example=False):
     a, B, C, program = input
     symbols = [int(c) for c in program.split(',')]
-    # Why can't I find anything that will print the last two symbols in the program?
-    # I've completely misunderstood some aspect of the program because I'd expect every factor
-    # of 8 to print something
-
-    # for A in range(100):
-    #     out = fast_compute(A, 0, 0, symbols)
-    #     print(out)
-    #     if out == [3, 0]:
-    #         print('A: ', A,  [3, 0])
     print('Searching for:', program)
-    print('check 6:', [fast_compute(i, 0, 0, symbols) for i in range(10)])
+
     options = [6]
     program_length = len(symbols)
     for p in range(1, program_length):
-        # print('p:', p, 'len(options):', len(options))
         new_options = []
         for option in options:
-            next_base = option * 8 + 6
+            next_base = option * 8
             for i in range(8):
                 new_opt = next_base + i
-                print(new_opt, ":", 'Looking for:', symbols[-(p + 1):], 'Got: ', fast_compute(new_opt, 0, 0, symbols))
-                if symbols[-(p + 1):] == fast_compute(new_opt, 0, 0, symbols):
-                    new_options.append(new_opt) # Punt!
+                # print(new_opt, ":", 'Looking for:', symbols[-(p + 1):], 'Got: ', compute(new_opt, 0, 0, symbols))
+                if symbols[-(p + 1):] == compute(new_opt, 0, 0, symbols):
+                    new_options.append(new_opt)
         options = new_options
-    print('Options:', options)
-    for A in options:
-        out = fast_compute(A, B, C, symbols)
-        if out == program:
-            print('Ans:', A)
-            return A
+    return min(options)
 
-    return None
 
 def run():
-    # day = Path(__file__).name.split('.')[0].split('_')[-1]
-    # input = read_input(day)
     input = parsed_full_input
     with timer():
         ans = part1(parsed_example)
@@ -246,15 +228,9 @@ def run():
         print(f'Pt1::ans: {ans}')
         ans = None
 
-    # with timer():
-    #     ans = part2(parsed_example_2, True)
-    #     assert ans == 117440, "Got: {}".format(ans)
-    #     print(f'Pt2(example)::ans: {ans}')
-    #     ans = None
-
     with timer():
         ans = part2(input)
-        # assert ans == None, "Got: {}".format(ans)
+        assert ans == 236548287712877, "Got: {}".format(ans)
         print(f'Pt2::ans: {ans}')
         ans = None
 
