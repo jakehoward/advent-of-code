@@ -125,7 +125,8 @@ def part2(input, example=False):
     symbols = [int(c) for c in program.split(',')]
     print('Searching for:', program)
 
-    options = [6]
+    # options = [6]
+    options = list(range(8))
     program_length = len(symbols)
     for p in range(1, program_length):
         new_options = []
@@ -133,7 +134,7 @@ def part2(input, example=False):
             next_base = option * 8
             for i in range(8):
                 new_opt = next_base + i
-                # print(new_opt, ":", 'Looking for:', symbols[-(p + 1):], 'Got: ', compute(new_opt, 0, 0, symbols))
+                print(new_opt, ":", 'Looking for:', symbols[-(p + 1):], 'Got: ', compute(new_opt, 0, 0, symbols))
                 if symbols[-(p + 1):] == compute(new_opt, 0, 0, symbols):
                     new_options.append(new_opt)
         options = new_options
