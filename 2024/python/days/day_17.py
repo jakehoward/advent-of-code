@@ -164,9 +164,9 @@ def fast_compute(a, b, c, symbols):
             out_buffer.append(combo(op) % 8)
             abc.append((A, B, C))
             if out_buffer != symbols[0:len(out_buffer)]:
-                if len(out_buffer) > 7:
-                    print(abc)
-                    print('Failed::', 'A:', A, 'B:', B, 'C:', C, symbols, out_buffer)
+                # if len(out_buffer) > 7:
+                #     print(abc)
+                #     print('Failed::', 'A:', A, 'B:', B, 'C:', C, symbols, out_buffer)
                 break
             instr += 2
             continue
@@ -181,38 +181,54 @@ def fast_compute(a, b, c, symbols):
             instr += 2
             continue
 
-    return ",".join([str(x) for x in out_buffer])
+    return out_buffer
 
 
 def part1(input):
     A, B, C, program = input
-    symbols = [int(c) for c in program.split(',')]
     return compute(A, B, C, program)
 
 
+# Last value of B must be 0 or 8 (so that B % 8 prints 0)
+# - which must be zero so it exits the loop
+# it gets divided down by 2**3 on each printing of a character
+# For the last value to be zero, it must be 1-7 in order to be divided by 8
+# and become 0, so should be in the range
 def part2(input, example=False):
     a, B, C, program = input
     symbols = [int(c) for c in program.split(',')]
+    # Why can't I find anything that will print the last two symbols in the program?
+    # I've completely misunderstood some aspect of the program because I'd expect every factor
+    # of 8 to print something
+
+    # for A in range(100):
+    #     out = fast_compute(A, 0, 0, symbols)
+    #     print(out)
+    #     if out == [3, 0]:
+    #         print('A: ', A,  [3, 0])
     print('Searching for:', program)
-    # A = 8**15 if not example else 0
-    # while A < (8**16) - 1:
-    # Last value of A must be 0 or 8 (so that B % 8 prints 0)
-    # - which must be zero so it exits the loop
-    # it gets divided down by 2**3 on each printing of a character
-    # For the last value to be zero, it must be 1-7 in order to be divided by 8
-    # and become 0, so should be in the range
-    A = 1 * (8*14)
-    while A < (7 * (8**14)):
-        if A % 1_000_000 == 0: # check == (7*(8**14))
-            print('A:', A)
+    print('check 6:', [fast_compute(i, 0, 0, symbols) for i in range(10)])
+    options = [6]
+    program_length = len(symbols)
+    for p in range(1, program_length):
+        # print('p:', p, 'len(options):', len(options))
+        new_options = []
+        for option in options:
+            next_base = option * 8 + 6
+            for i in range(8):
+                new_opt = next_base + i
+                print(new_opt, ":", 'Looking for:', symbols[-(p + 1):], 'Got: ', fast_compute(new_opt, 0, 0, symbols))
+                if symbols[-(p + 1):] == fast_compute(new_opt, 0, 0, symbols):
+                    new_options.append(new_opt) # Punt!
+        options = new_options
+    print('Options:', options)
+    for A in options:
         out = fast_compute(A, B, C, symbols)
         if out == program:
-            print('!! Answer is:', A)
+            print('Ans:', A)
             return A
-        A += 1
-    print('A_replicator not found')
-    return None
 
+    return None
 
 def run():
     # day = Path(__file__).name.split('.')[0].split('_')[-1]

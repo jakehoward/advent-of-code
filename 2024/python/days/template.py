@@ -5,13 +5,16 @@ from utils.read import read_input
 
 example = """HERE"""
 
+
 def part1(input):
     answer = '...'
     return answer
 
+
 def part2(input):
     answer = '...'
     return answer
+
 
 def run():
     day = Path(__file__).name.split('.')[0].split('_')[-1]
