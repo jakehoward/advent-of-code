@@ -1,3 +1,5 @@
+from copy import deepcopy
+from functools import cache
 from heapq import heappush, heappop
 from pathlib import Path
 
@@ -34,48 +36,70 @@ def mul(p, s):
 def add(p1, p2):
     return p1[0] + p2[0], p1[1] + p2[1]
 
-
-# Mutates seen cheats
-def get_nbrs(grid, pos, cheat_taken, seen_cheats):
+@cache
+def get_nbrs(grid, pos):
     px, py = pos
-    nbrs = [n for n in grid.get_nbr_xys(px, py) if grid.at(n) != '#']
-    cheat_found = False
-    if not cheat_taken:
-        for n in grid.get_nbr_xys(px, py):
-            direction = sub(n, pos)
-            p_after_cheat = add(pos, mul(direction, 2))
-            if grid.at(n) == '#' and grid.in_bounds(p_after_cheat) and grid.at(p_after_cheat) != '#' and (pos, p_after_cheat) not in seen_cheats:
-                nbrs.append(n) # n is in the wall, but the algo should take care of it fine and get the cost right
-                seen_cheats.add((pos, p_after_cheat))
-                cheat_found = True
-                break
-    return list(set(nbrs)), cheat_found
+    return [n for n in grid.get_nbr_xys(px, py) if grid.at(n) != '#']
 
 
-def path_cost(grid, start, end, seen_cheats, cheat=False):
-    Q = []
-    seen = set()
-    heappush(Q, (0, start))
-    cheat_taken = not cheat
-
+def path_cost(grid, end, Q, seen):
     while Q:
         cost, pos = heappop(Q)
         if pos == end:
-            return cost, seen_cheats
+            return cost
 
         if pos in seen:
             continue
         seen.add(pos)
 
-        nbrs, cheat_found = get_nbrs(grid, pos, cheat_taken, seen_cheats)
-        if cheat_found and not cheat_taken:
-            cheat_taken = True
+        nbrs = get_nbrs(grid, pos)
 
         for n in nbrs:
             heappush(Q, (cost + 1, n))
 
 
-def part1(input):
+def deploy_cheaters(grid, start, end):
+    Q = []
+    seen = set()
+    heappush(Q, (0, start))
+    seen_cheats = set()
+
+    found_costs = []
+    while Q:
+        cost, pos = heappop(Q)
+        if pos == end:
+            found_costs.append(cost)
+            return found_costs
+
+        if pos in seen:
+            continue
+        seen.add(pos)
+
+        legit_nbrs = get_nbrs(grid, pos)
+        for n in legit_nbrs:
+            heappush(Q, (cost + 1, n))
+
+        px, py = pos
+        cheat_nbrs = []
+        for n in [n for n in grid.get_nbr_xys(px, py) if grid.at(n) == '#']:
+            direction = sub(n, pos)
+            p_after_cheat = add(pos, mul(direction, 2))
+            if grid.in_bounds(p_after_cheat) and grid.at(p_after_cheat) != '#' and p_after_cheat not in seen:
+                cheat_id = (pos, p_after_cheat)
+                if cheat_id not in seen_cheats:
+                    # n is in the wall, but the algo should take care of it fine and get the cost right
+                    cheat_nbrs.append(n)
+                    seen_cheats.add(cheat_id)
+
+        for cn in cheat_nbrs:
+            forked_Q = deepcopy(Q)
+            heappush(forked_Q, (cost + 1, cn))
+            seen_copy = deepcopy(seen)
+            found_costs.append(path_cost(grid, end, forked_Q, seen_copy))
+
+
+
+def part1(input, is_example=False):
     grid = make_grid(input)
     end = None
     start = None
@@ -85,23 +109,26 @@ def part1(input):
         elif v == 'S':
             start = p
 
-    no_cheat_cost, seen_cheats = path_cost(grid, start, end, set(), False)
+    Q = []
+    heappush(Q, (0, start))
+    no_cheat_cost = path_cost(grid, end, Q, set())
+    if is_example:
+        assert no_cheat_cost == 84, f'Got: {no_cheat_cost}, expected: {84}'
+    else:
+        assert no_cheat_cost == 9432, f'Got: {no_cheat_cost}, expected: {9432}'
     print('No cheat cost:', no_cheat_cost)
 
-    seen_cheats = set()
+    found_costs = deploy_cheaters(grid, start, end)
     savings_freq = {}
-    while True:
-        len_seen_cheats_before = len(seen_cheats)
-        cost, seen_cheats = path_cost(grid, start, end, seen_cheats, True)
-        len_seen_cheats_after = len(seen_cheats)
-        if len_seen_cheats_before == len_seen_cheats_after:
-            break
+    for cost in found_costs:
+        savings_freq.setdefault(no_cheat_cost - cost, 0)
+        savings_freq[no_cheat_cost - cost] += 1
 
-        saving = no_cheat_cost - cost
-        savings_freq.setdefault(saving, 0)
-        savings_freq[saving] += 1
+    if is_example:
+        print(savings_freq)
+        expected = {4: 14, 2: 14, 12: 3, 10: 2, 8: 4, 6: 2, 64: 1, 40: 1, 38: 1, 20: 1, 36: 1, 0: 1}
+        assert savings_freq == expected, f'Err, got: {savings_freq}'
 
-    print(savings_freq)
     return sum(savings_freq[k] for k in savings_freq.keys() if k >= 100)
 
 
@@ -114,14 +141,14 @@ def run():
     day = Path(__file__).name.split('.')[0].split('_')[-1]
     input = read_input(day)
     with timer():
-        ans = part1(example)
+        ans = part1(example, True)
         # assert ans == None, "Got: {}".format(ans)
         print(f'Pt1(example)::ans: {ans}')
         ans = None
 
     with timer():
         ans = part1(input)
-        # assert ans == None, "Got: {}".format(ans)
+        assert ans == 1518, "Got: {}".format(ans)
         print(f'Pt1::ans: {ans}')
         ans = None
 
