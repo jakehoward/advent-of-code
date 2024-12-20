@@ -38,9 +38,26 @@ def add(p1, p2):
 
 
 @cache
-def get_nbrs(grid, pos):
-    px, py = pos
-    return [n for n in grid.get_nbr_xys(px, py) if grid.at(n) != '#']
+def shortest_path_cost(grid, start, end):
+    Q = []
+    seen = set()
+
+    heappush(Q, (0, start))
+    while Q:
+        cost, pos = heappop(Q)
+        if pos == end:
+            return cost
+
+        if pos in seen:
+            continue
+        seen.add(pos)
+
+        px, py = pos
+        nbrs = [n for n in grid.get_nbr_xys(px, py) if grid.at(n) != '#']
+
+        for n in nbrs:
+            heappush(Q, (cost + 1, n))
+
 
 
 def get_cheat_nbrs_within_distance(grid, pos, distance):
@@ -67,7 +84,8 @@ def path_cost(grid, end, Q, seen):
             continue
         seen.add(pos)
 
-        nbrs = get_nbrs(grid, pos)
+        px, py = pos
+        nbrs = [n for n in grid.get_nbr_xys(px, py) if grid.at(n) != '#']
 
         for n in nbrs:
             heappush(Q, (cost + 1, n))
@@ -90,13 +108,15 @@ def deploy_cheaters(grid, start, end, max_cheat_distance):
             continue
         seen.add(pos)
 
-        legit_nbrs = get_nbrs(grid, pos)
+        px, py = pos
+        legit_nbrs = [n for n in grid.get_nbr_xys(px, py) if grid.at(n) != '#']
+
         for n in legit_nbrs:
             heappush(Q, (cost + 1, n))
 
         cheat_nbrs = []
         for n in get_cheat_nbrs_within_distance(grid, pos, max_cheat_distance):
-            if grid.in_bounds(n) and n not in seen:
+            if n not in seen:
                 cheat_id = (pos, n)
                 if cheat_id not in seen_cheats:
                     cheat_nbrs.append(n)
@@ -106,13 +126,13 @@ def deploy_cheaters(grid, start, end, max_cheat_distance):
         for cn in cheat_nbrs:
             cnx, cny = cn
             distance = abs(cnx - px) + abs(cny - py)
-            forked_Q = Q[:]  # deepcopy soooo slooooooow
-            heappush(forked_Q, (cost + distance, cn))
-            seen_copy = {x for x in seen}  # deepcopy soooo slooooooow
-            found_costs.append(path_cost(grid, end, forked_Q, seen_copy))
+            # forked_Q = Q[:]  # deepcopy soooo slooooooow
+            # heappush(forked_Q, (cost + distance, cn))
+            # seen_copy = {x for x in seen}  # deepcopy soooo slooooooow
+            found_costs.append(cost + distance + shortest_path_cost(grid, cn, end))
 
 
-def get_num_options(input, cheat_distance, min_saving, is_example=False):
+def get_num_options(input, cheat_distance, min_saving, is_example=False, example_expected=None):
     grid = make_grid(input)
     end = None
     start = None
@@ -139,15 +159,18 @@ def get_num_options(input, cheat_distance, min_saving, is_example=False):
 
     if is_example:
         print(savings_freq)
-        expected = {4: 14, 2: 14, 12: 3, 10: 2, 8: 4, 6: 2, 64: 1, 40: 1, 38: 1, 20: 1, 36: 1, 0: 1}
-        assert {k: v for k, v in savings_freq.items() if k != 0} == {k: v for k, v in expected.items() if
-                                                             k != 0}, f'Err, got: {savings_freq}'
+        example_expected
+        if example_expected:
+            assert {k: v for k, v in savings_freq.items() if k != 0} == {k: v for k, v in example_expected.items() if
+                                                                         k != 0}, f'Err, got: {savings_freq}'
 
     return sum(savings_freq[k] for k in savings_freq.keys() if k >= min_saving)
 
 
 def part1(input, is_example=False):
-    return get_num_options(input, cheat_distance=2, min_saving=0 if is_example else 100, is_example=is_example)
+    ex = {4: 14, 2: 14, 12: 3, 10: 2, 8: 4, 6: 2, 64: 1, 40: 1, 38: 1, 20: 1, 36: 1, 0: 1}
+    return get_num_options(input, cheat_distance=2, min_saving=0 if is_example else 100, is_example=is_example,
+                           example_expected=ex)
 
 
 def part2(input, is_example=False):
@@ -163,23 +186,23 @@ def run():
         print(f'Pt1(example)::ans: {ans}')
         ans = None
 
+    # with timer():
+    #     ans = part1(input)
+    #     assert ans == 1518, "Got: {}".format(ans)
+    #     print(f'Pt1::ans: {ans}')
+    #     ans = None
+
     with timer():
-        ans = part1(input)
-        assert ans == 1518, "Got: {}".format(ans)
-        print(f'Pt1::ans: {ans}')
+        ans = part2(example, True)
+        # assert ans == None, "Got: {}".format(ans)
+        print(f'Pt2(example)::ans: {ans}')
         ans = None
 
-    # with timer():
-    #     ans = part2(example, True)
-    #     assert ans == None, "Got: {}".format(ans)
-    #     print(f'Pt2(example)::ans: {ans}')
-    #     ans = None
-
-    # with timer():
-    #     ans = part2(input)
-    #     assert ans == None, "Got: {}".format(ans)
-    #     print(f'Pt2::ans: {ans}')
-    #     ans = None
+    with timer():
+        ans = part2(input)
+        assert ans == 1032257, "Got: {}".format(ans)
+        print(f'Pt2::ans: {ans}')
+        ans = None
 
 
 if __name__ == "__main__":
