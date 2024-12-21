@@ -65,6 +65,15 @@ def complexity(door_code, button_presses):
 
 
 def arrow_pad_to_robot(buttons: ButtonSequence):
+    def wont_panic(button, movements):
+        if button == up and movements[:1] == [left]:
+            return False
+        if button == press and movements[:2] == [left, left]:
+            return False
+        if button == left and movements[:1] == [up]:
+            return False
+        return True
+
     current_button = press
     movements = []
     for button in buttons:
@@ -74,6 +83,23 @@ def arrow_pad_to_robot(buttons: ButtonSequence):
 
         horizontal_movements = [horizontal_direction] * abs(dx)
         vertical_movements = [vertical_direction] * abs(dy)
+
+        # prefer v> over >v
+        if horizontal_direction == right and vertical_direction == down and wont_panic(current_button,
+                                                                                       vertical_movements):
+            movements += vertical_movements
+            movements += horizontal_movements
+            movements += [press]
+            current_button = button
+            continue
+        # prefer <v over v<
+        if horizontal_direction == left and vertical_direction == down and wont_panic(current_button,
+                                                                                      horizontal_movements):
+            movements += horizontal_movements
+            movements += vertical_movements
+            movements += [press]
+            current_button = button
+            continue
 
         # Order such that you don't hover over panic square
         if current_button == left:
@@ -88,6 +114,15 @@ def arrow_pad_to_robot(buttons: ButtonSequence):
 
 
 def code_pad_to_robot(code: str):
+    def wont_panic(button, movements):
+        if button == 'A' and movements[:2] == [left, left]:
+            return False
+        if button == '0' and movements[:1] == [left]:
+            return False
+        if button == '1' and movements[:1] == [down]:
+            return False
+        return True
+
     buttons = list(code)
     assert buttons[-1] == 'A'
 
@@ -101,6 +136,23 @@ def code_pad_to_robot(code: str):
 
         horizontal_movements = [horizontal_direction] * abs(dx)
         vertical_movements = [vertical_direction] * abs(dy)
+
+        # prefer v> over >v
+        if horizontal_direction == right and vertical_direction == down and wont_panic(current_button,
+                                                                                       vertical_movements):
+            movements += vertical_movements
+            movements += horizontal_movements
+            movements += [press]
+            current_button = button
+            continue
+        # prefer <v over v<
+        if horizontal_direction == left and vertical_direction == down and wont_panic(current_button,
+                                                                                      horizontal_movements):
+            movements += horizontal_movements
+            movements += vertical_movements
+            movements += [press]
+            current_button = button
+            continue
 
         # Order such that you don't hover over panic square
         if current_button in ['0', 'A']:
@@ -121,8 +173,11 @@ def part1(input: str):
     all_code_to_final_movements = []
     for code in codes:
         first_robot_movements = code_pad_to_robot(code)
+        print('First robot:', ''.join(first_robot_movements))
         second_robot_movements = arrow_pad_to_robot(first_robot_movements)
+        print('Second robot:', ''.join(second_robot_movements))
         third_robot_movements = arrow_pad_to_robot(second_robot_movements)
+        print('Third robot:', ''.join(third_robot_movements))
         # You press the buttons for the third robot
         all_code_to_final_movements.append((code, third_robot_movements))
     return sum([complexity(code, button_presses) for code, button_presses in all_code_to_final_movements])
@@ -144,7 +199,7 @@ def run():
 
     with timer():
         ans = part1(input)
-        # assert ans == None, "Got: {}".format(ans) # 265196 too high
+        # assert ans == None, "Got: {}".format(ans) # 265196 too high, 253968 too high
         print(f'Pt1::ans: {ans}')
         ans = None
 
