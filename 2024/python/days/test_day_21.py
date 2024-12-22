@@ -1,57 +1,34 @@
 import pytest
-from days.day_21 import complexity, code_pad_to_robot, arrow_pad_to_robot
+from days.day_21 import complexity
+from days.day_copy_21 import code_pad_to_robot_options_tree, up, left, press, down, right, get_all_paths, \
+    get_shortest_path
+
 
 class TestDay21:
     def test_complexity(self):
-        assert (10 == complexity('002A', '^v<>A'))
+        assert (complexity('002A', '^v<>A') == 10)
 
-    def test_code_pad_mapping(self):
-        assert ('<P>P' == ''.join(code_pad_to_robot('0A')))
+    def test_all_paths(self):
+        A = (left, up, press)
+        B = (up, left, press)
+        C = (up, right, press)
+        D = (right, up, press)
+        E = (down, down, press)
+        tree = code_pad_to_robot_options_tree('26A', 'A', ['root', []])
+        expected = [
+            [A, C, E],
+            [A, D, E],
+            [B, C, E],
+            [B, D, E],
+        ]
+        assert (sorted(get_all_paths(tree, [])) == sorted(expected))
 
-    def test_arrow_pad_mapping(self):
-        assert ('v<<P>>^PvP^P' == ''.join(arrow_pad_to_robot('<P>P')))
-
-    def test_code_to_arrow_mapping(self):
-        assert ('<<vP>>^PvP^P' == ''.join(arrow_pad_to_robot(code_pad_to_robot('0A'))))
-        assert ('<<vPP>P>^PvPP<^P>P<vP>^P<P>P' == ''.join(arrow_pad_to_robot(arrow_pad_to_robot(code_pad_to_robot('0A')))))
-
-
-# 869A: v<<P>>^PPPv<P<P>>^PvPP^<P>Pv<P^>Pv<<P>>^P<Pv>P^Pv<<P>>^PvP^Pv<P<P>>^PPP<Pv>P^P (78)
-# 869A: v<<P>>^PPPv<P<P>>^PvPP^<P>Pv<P^>Pv<<P>>^P<Pv>P^Pv<<P>>^PvP^Pv<P<P>>^PPP<Pv>P^P (78)
-
-# 180A: v<<P>>^Pv<P<P>>^PPvPP^<P>Pv<P^>P<Pv<P>>^PPvP^Pv<P<P>>^PPP<Pv>P^Pv<P^>P<P>P (74)
-# 180A: v<<P>>^Pv<P<P>>^PPvPP^<P>Pv<P^>P<Pv<P>>^PPvP^Pv<P<P>>^PPP<Pv>P^Pv<P^>P<P>P (74)
-
-# 596A: v<<P>>^PPv<P<P>>^PvPP^<P>Pv<P^>P<Pv<P>>^PvP^Pv<P<P>>^P<Pv>P^Pv<P<P>>^PP<Pv>P^P (78)
-# 596A: v<<P>>^PPv<P<P>>^PvPP^<P>Pv<P^>P<Pv<P>>^PvP^Pv<P<P>>^P<Pv>P^Pv<P<P>>^PP<Pv>P^P (78)
-
-# 965A: v<<P>>^PPPvP^Pv<P<P>>^P<Pv>P^Pv<P<PP>>^PvPP^<P>Pv<P^>Pv<<P>>^PP<Pv>P^P (70)
-# 965A: v<<P>>^PPPvP^Pv<P<P>>^P<Pv>P^Pv<P<PP>>^PvPP^<P>Pv<P^>Pv<<P>>^PP<Pv>P^P (70)
-
-# 973A: v<<P>>^PPPvP^Pv<P<PP>>^PPvPP^<P>Pv<P^>PPv<<P>>^PP<Pv>P^Pv<P<P>>^P<Pv>P^P (72)
-# 973A: v<<P>>^PPPvP^Pv<P<PP>>^PPvPP^<P>Pv<P^>PPv<<P>>^PP<Pv>P^Pv<P<P>>^P<Pv>P^P (72)
-
-
-## Arrow:
-# def wont_panic(button, movements):
-#     if button == up and movements[:1] == [left]:
-#         return False
-#     if button == press and movements[:2] == [left, left]:
-#         return False
-#     if button == left and movements[:1] == [up]:
-#         return False
-#     return True
-
-
-## Code:
-# def wont_panic(button, movements):
-#     if button == 'A' and movements[:2] == [left, left]:
-#         return False
-#     if button == '0' and movements[:1] == [left]:
-#         return False
-#     if button == '1' and movements[:1] == [down]:
-#         return False
-#     return True
+    def test_get_shortest_path(self):
+        assert(len(get_shortest_path('029A')) == 68)
+        assert(len(get_shortest_path('980A')) == 60)
+        assert(len(get_shortest_path('179A')) == 68)
+        assert(len(get_shortest_path('456A')) == 64)
+        assert(len(get_shortest_path('379A')) == 64)
 
 # if len(movements) > 0 and movements[-1]:
 #     last_movement = movements[-1]
