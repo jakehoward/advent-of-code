@@ -107,23 +107,6 @@ def arrow_pad_to_robot(buttons):
         horizontal_movements = [horizontal_direction] * abs(dx)
         vertical_movements = [vertical_direction] * abs(dy)
 
-        # prefer v> over >v
-        if horizontal_direction == right and vertical_direction == down and wont_panic(current_button,
-                                                                                       vertical_movements):
-            movements += vertical_movements
-            movements += horizontal_movements
-            movements += [press]
-            current_button = button
-            continue
-        # prefer <v over v<
-        if horizontal_direction == left and vertical_direction == down and wont_panic(current_button,
-                                                                                      horizontal_movements):
-            movements += horizontal_movements
-            movements += vertical_movements
-            movements += [press]
-            current_button = button
-            continue
-
         # Order such that you don't hover over panic square
         if current_button == left:
             movements += horizontal_movements
@@ -183,7 +166,6 @@ def get_shortest_path(code, num_robots):
         flat_path = [v for p in path for v in p]
         movements = arrow_pad_to_robot(flat_path)
         for i in range(num_robots - 1):
-            print(f'Iteration {i} of {num_robots - 1}')
             movements = arrow_pad_to_robot(movements)
 
         final_path = ''.join(movements)
@@ -233,11 +215,11 @@ def run():
     #     print(f'Pt2(example)::ans: {ans}')
     #     ans = None
 
-    with timer():
-        ans = part2(input)
-        # assert ans == None, "Got: {}".format(ans)
-        print(f'Pt2::ans: {ans}')
-        ans = None
+    # with timer():
+    #     ans = part2(input)
+    #     assert ans == None, "Got: {}".format(ans)
+    #     print(f'Pt2::ans: {ans}')
+    #     ans = None
 
 
 if __name__ == "__main__":
