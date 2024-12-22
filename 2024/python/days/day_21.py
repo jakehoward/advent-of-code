@@ -113,6 +113,33 @@ def arrow_pad_to_robot(buttons: ButtonSequence):
     return movements
 
 
+def code_pad_to_robot_options(code: str):
+    def wont_panic(button, movements):
+        if button == 'A' and movements[:2] == [left, left]:
+            return False
+        if button == '0' and movements[:1] == [left]:
+            return False
+        if button == '1' and movements[:1] == [down]:
+            return False
+        return True
+
+    buttons = list(code)
+    current_button = 'A'
+    options = []
+    for button in buttons:
+        dx, dy = sub(code_pad_button_to_xy[button], code_pad_button_to_xy[current_button])
+        horizontal_direction = left if dx < 0 else right
+        vertical_direction = up if dy < 0 else down
+        horizontal_movements = [horizontal_direction] * abs(dx)
+        vertical_movements = [vertical_direction] * abs(dy)
+
+        all_movements = horizontal_movements + vertical_movements
+        all_permutations = [p + (press,) for p in list(set(permutations(all_movements))) if wont_panic(current_button, p)]
+        options.append(all_permutations)
+        current_button = button
+    return options
+
+
 def code_pad_to_robot(code: str):
     def wont_panic(button, movements):
         if button == 'A' and movements[:2] == [left, left]:
@@ -168,7 +195,7 @@ def code_pad_to_robot(code: str):
     return movements
 
 
-def part1(input: str):
+def part1_direct(input: str):
     codes = parse(input)
     all_code_to_final_movements = []
     for code in codes:
@@ -181,6 +208,36 @@ def part1(input: str):
         # You press the buttons for the third robot
         all_code_to_final_movements.append((code, third_robot_movements))
     return sum([complexity(code, button_presses) for code, button_presses in all_code_to_final_movements])
+
+
+def build_options_tree(split_options, tree=None):
+    if not split_options:
+        return []
+    options = [split_options[0]]
+
+    remaining = split_options[1:]
+    while remaining:
+        next_batch = remaining.pop(0)
+        for option in options:
+            option.append(next_batch)
+
+    return options
+
+def part1(input):
+    codes = parse(input)
+    for code in codes:
+        first_robot_options = code_pad_to_robot_options(code)
+        option_tree = build_options_tree(first_robot_options)
+
+        print('Code:', code, 'First robot:', first_robot_options)
+        print('Option tree:', option_tree)
+        # for option in option_tree:
+            # second_robot_movements = arrow_pad_to_robot(first_robot_movements)
+            # print('Second robot:', ''.join(second_robot_movements))
+            # third_robot_movements = arrow_pad_to_robot(second_robot_movements)
+            # print('Third robot:', ''.join(third_robot_movements))
+            # You press the buttons for the third robot
+            # all_code_to_final_movements.append((code, third_robot_movements))
 
 
 def part2(input):
@@ -197,11 +254,11 @@ def run():
         print(f'Pt1(example)::ans: {ans}')
         ans = None
 
-    with timer():
-        ans = part1(input)
+    # with timer():
+    #     ans = part1(input)
         # assert ans == None, "Got: {}".format(ans) # 265196 too high, 253968 too high
-        print(f'Pt1::ans: {ans}')
-        ans = None
+        # print(f'Pt1::ans: {ans}')
+        # ans = None
 
     # with timer():
     #     ans = part2(example)
