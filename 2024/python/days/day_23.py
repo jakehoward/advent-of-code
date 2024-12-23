@@ -69,35 +69,6 @@ def get_all_nodes(graph):
     return list(graph.keys())
 
 
-def get_densely_connected_clusters(pairs):
-    graph = build_graph_from_pairs(pairs)
-
-    all_nodes = list(graph.keys())
-    clusters = [{n} for n in all_nodes]
-    for node in all_nodes:
-        new_clusters = []
-        for cluster in clusters:
-            if len(cluster.intersection(graph[node])) == len(cluster):
-                cluster.add(node)
-            else:
-                new_clusters.append(cluster.intersection(graph[node]))
-                new_clusters.append(cluster.difference(graph[node]))
-        clusters += [c for c in new_clusters if len(c)]
-
-    clusters = {tuple(sorted(list(c))) for c in clusters}
-    new_clusters = []
-    for cluster in clusters:
-        for i in range(1, len(cluster)):
-            for p in permutations(cluster, i):
-                sorted_p = tuple(sorted(list(p)))
-                if sorted_p not in clusters:
-                    new_clusters.append(sorted_p)
-
-    clusters |= set(new_clusters)
-
-    return sorted([set(c) for c in clusters], key=len, reverse=True)
-
-
 def get_three_clusters(pairs):
     graph = build_graph_from_pairs(pairs)
     all_nodes = get_all_nodes(graph)
