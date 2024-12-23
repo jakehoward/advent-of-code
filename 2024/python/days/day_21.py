@@ -264,11 +264,11 @@ def part1(input: str):
 
 def part2(input):
     # Compare old and new
-    codes = parse(input)
-    for code in codes:
-        print('code:', code)
-        for i in range(1, 11):
-            print('i:', i, 'slow:', len(slow_get_shortest_path(code, i)), 'fast:', get_shortest_path(code, i))
+    # codes = parse(input)
+    # for code in codes:
+    #     print('code:', code)
+    #     for i in range(1, 11):
+    #         print('i:', i, 'slow:', len(slow_get_shortest_path(code, i)), 'fast:', get_shortest_path(code, i))
 
     return get_ans(input, 25)
 
