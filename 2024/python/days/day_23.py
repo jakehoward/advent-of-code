@@ -112,7 +112,18 @@ def get_three_clusters(pairs):
 
 
 def find_largest_cluster(graph):
-    pass
+    # greedy search, start with node and consume all densely connected nodes
+    all_nodes = get_all_nodes(graph)
+    largest_cluster = {}
+    for node in all_nodes:
+        dense_cluster = {node}
+        for connected_node in graph[node]:
+            if all([edge_exists(graph, connected_node, cn) for cn in dense_cluster]):
+                dense_cluster.add(connected_node)
+        if len(dense_cluster) > len(largest_cluster):
+            largest_cluster = dense_cluster
+    return largest_cluster
+
 
 
 def part1(input):
@@ -143,17 +154,17 @@ def run():
         print(f'Pt1::ans: {ans}')
         ans = None
 
-    # with timer():
-    #     ans = part2(example)
-    #     assert ans == None, "Got: {}".format(ans)
-    #     print(f'Pt2(example)::ans: {ans}')
-    #     ans = None
+    with timer():
+        ans = part2(example)
+        assert ans == 'co,de,ka,ta', "Got: {}".format(ans)
+        print(f'Pt2(example)::ans: {ans}')
+        ans = None
 
-    # with timer():
-    #     ans = part2(input)
-    #     assert ans == None, "Got: {}".format(ans)
-    #     print(f'Pt2::ans: {ans}')
-    #     ans = None
+    with timer():
+        ans = part2(input)
+        assert ans == 'hl,io,ku,pk,ps,qq,sh,tx,ty,wq,xi,xj,yp', "Got: {}".format(ans)
+        print(f'Pt2::ans: {ans}')
+        ans = None
 
 
 if __name__ == "__main__":
