@@ -1,7 +1,7 @@
 import pytest
 from days.day_21 import complexity, code_pad_to_robot_options_tree, up, left, press, down, right, get_all_paths, \
     get_shortest_path
-from days.day_23 import get_densely_connected_clusters, add_edge, edge_exists
+from days.day_23 import add_edge, edge_exists
 
 
 class TestDay23:

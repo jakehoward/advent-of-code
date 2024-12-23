@@ -1,6 +1,8 @@
 import re
+import math
 from itertools import permutations
 from pathlib import Path
+from functools import cache
 
 from utils.misc import timer
 from utils.read import read_input
@@ -57,14 +59,21 @@ def add(p1, p2):
     return p1[0] + p2[0], p1[1] + p2[1]
 
 
-def complexity(door_code, button_presses):
-    print(f"{door_code}: {''.join(button_presses)} ({len(button_presses)})")
+def complexity(door_code, button_presses, debug=False):
+    if debug: print(f"{door_code}: {''.join(button_presses)} ({len(button_presses)})")
     return int(re.findall(r'(\d+)', door_code)[0]) * len(button_presses)
+
+
+def complexity_v2(door_code, len_button_presses, debug=False):
+    if debug: print(f"{door_code}: ({len_button_presses})")
+    return int(re.findall(r'(\d+)', door_code)[0]) * len_button_presses
 
 
 def wont_panic(button, _movements):
     movements = list(_movements)
     if button == up and movements[:1] == [left]:
+        return False
+    if button == press and movements[:2] == [left, left]:
         return False
     if button == left and movements[:1] == [up]:
         return False
@@ -87,25 +96,41 @@ def get_movements_hv(from_button, to_button, pad_button_to_xy):
     return horizontal_movements, vertical_movements
 
 
-def arrow_pad_to_robot(buttons):
-    def wont_panic(button, movements):
-        if button == up and movements[:1] == [left]:
-            return False
-        if button == press and movements[:2] == [left, left]:
-            return False
-        if button == left and movements[:1] == [up]:
-            return False
-        return True
-
+def arrow_pad_to_robot(buttons, do_optimisation=True):
     current_button = press
     movements = []
-    for button in buttons:
-        dx, dy = sub(arrow_pad_button_to_xy[button], arrow_pad_button_to_xy[current_button])
+    for next_button in buttons:
+        dx, dy = sub(arrow_pad_button_to_xy[next_button], arrow_pad_button_to_xy[current_button])
         horizontal_direction = left if dx < 0 else right
         vertical_direction = up if dy < 0 else down
 
         horizontal_movements = [horizontal_direction] * abs(dx)
         vertical_movements = [vertical_direction] * abs(dy)
+
+        # prefer v> over >v
+        if horizontal_direction == right and vertical_direction == down and wont_panic(current_button,
+                                                                                       vertical_movements):
+            movements += vertical_movements
+            movements += horizontal_movements
+            movements += [press]
+            current_button = next_button
+            continue
+        if do_optimisation:
+            # prefer <v over v<
+            if horizontal_direction == left and vertical_direction == down and wont_panic(current_button,
+                                                                                          horizontal_movements):
+                movements += horizontal_movements
+                movements += vertical_movements
+                movements += [press]
+                current_button = next_button
+                continue
+            # prefer <^ over ^<
+            if vertical_direction == up and horizontal_direction == left and wont_panic(current_button, horizontal_movements):
+                movements += horizontal_movements
+                movements += vertical_movements
+                movements += [press]
+                current_button = next_button
+                continue
 
         # Order such that you don't hover over panic square
         if current_button == left:
@@ -115,7 +140,7 @@ def arrow_pad_to_robot(buttons):
             movements += vertical_movements
             movements += horizontal_movements
         movements += [press]
-        current_button = button
+        current_button = next_button
     return movements
 
 
@@ -157,16 +182,16 @@ def get_all_paths(tree, path_so_far):
     return paths
 
 
-def get_shortest_path(code, num_robots):
-    print('Searching for shortest path for:', code)
+def slow_get_shortest_path(code, num_robots, debug=False):
+    if debug: print('Searching for shortest path for:', code)
     shortest_path = None
     tree = code_pad_to_robot_options_tree(code, 'A', ['root', []])
     all_paths = get_all_paths(tree, [])
     for path in all_paths:
         flat_path = [v for p in path for v in p]
         movements = arrow_pad_to_robot(flat_path)
-        for i in range(num_robots - 1):
-            movements = arrow_pad_to_robot(movements)
+        for i in range(num_robots -1):
+            movements = arrow_pad_to_robot(movements, do_optimisation=False)
 
         final_path = ''.join(movements)
         if not shortest_path or len(shortest_path) > len(final_path):
@@ -176,22 +201,76 @@ def get_shortest_path(code, num_robots):
     return shortest_path
 
 
-def part1(input: str):
+def partition_by_press(movements):
+    partitions = []
+    sub_partition = []
+    for move in movements:
+        if move == press:
+            partitions.append(sub_partition + [press])
+            sub_partition = []
+        else:
+            sub_partition.append(move)
+    assert len(sub_partition) == 0
+    return partitions
+
+
+@cache
+def get_num_moves(start_moves, num_robots):
+    if num_robots == 0:
+        return len(start_moves)
+    partitions = partition_by_press(start_moves)
+    path_length = sum([get_num_moves(tuple(arrow_pad_to_robot(p)), num_robots - 1) for p in partitions])
+    return path_length
+
+
+def get_shortest_path(code, num_robots, debug=False):
+    if debug: print('Searching for shortest path for:', code)
+    shortest_path_length = math.inf
+    tree = code_pad_to_robot_options_tree(code, 'A', ['root', []])
+    all_paths = get_all_paths(tree, [])
+    for path in all_paths:
+        flat_path = [v for p in path for v in p]
+        path_length = get_num_moves(tuple(flat_path), num_robots)
+
+        if shortest_path_length > path_length:
+            shortest_path_length = path_length
+
+    assert shortest_path_length != math.inf, f'No shortest path found for: {code}'
+    return shortest_path_length
+
+
+def get_ans_slow(input):
     codes = parse(input)
     shortest_paths = []
     for code in codes:
-        shortest_path = get_shortest_path(code, 2)
+        shortest_path = slow_get_shortest_path(code, 2)
         shortest_paths.append((code, shortest_path))
     return sum([complexity(code, path) for code, path in shortest_paths])
+
+
+def get_ans(input, num_robots):
+    codes = parse(input)
+    shortest_paths = []
+    for code in codes:
+        shortest_path_length = get_shortest_path(code, num_robots)
+        shortest_paths.append((code, shortest_path_length))
+    return sum([complexity_v2(code, path_len) for code, path_len in shortest_paths])
+
+
+def part1(input: str):
+    # return get_ans_slow(input)
+    return get_ans_slow(input)
 
 
 def part2(input):
+    # Compare old and new
     codes = parse(input)
-    shortest_paths = []
     for code in codes:
-        shortest_path = get_shortest_path(code, 25)
-        shortest_paths.append((code, shortest_path))
-    return sum([complexity(code, path) for code, path in shortest_paths])
+        print('code:', code)
+        for i in range(1, 11):
+            print('i:', i, 'slow:', len(slow_get_shortest_path(code, i)), 'fast:', get_shortest_path(code, i))
+
+    return get_ans(input, 25)
 
 
 def run():
@@ -205,7 +284,7 @@ def run():
 
     with timer():
         ans = part1(input)
-        assert ans == 248108, "Got: {}".format(ans) # 265196 too high, 253968 too high
+        assert ans == 248108, "Got: {}".format(ans)  # 265196 too high, 253968 too high
         print(f'Pt1::ans: {ans}')
         ans = None
 
@@ -215,11 +294,11 @@ def run():
     #     print(f'Pt2(example)::ans: {ans}')
     #     ans = None
 
-    # with timer():
-    #     ans = part2(input)
-    #     assert ans == None, "Got: {}".format(ans)
-    #     print(f'Pt2::ans: {ans}')
-    #     ans = None
+    with timer():
+        ans = part2(input)
+        assert 228543993714790 < ans < 355902020229854, "Got: {}".format(ans)  # 563238807716320 too high
+        print(f'Pt2::ans: {ans}')
+        ans = None
 
 
 if __name__ == "__main__":
