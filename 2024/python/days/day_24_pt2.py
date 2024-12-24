@@ -21,11 +21,16 @@ def parse(input):
     return tuple(wires), tuple(circuit)
 
 
-def run_machine(input_wire_values: tuple[Wire, ...], circuit: Circuit) -> int:
+def run_machine(input_wire_values: tuple[Wire, ...], circuit: Circuit, err=-1) -> int:
     wire_values = {name: value for name, value in input_wire_values}
     remaining_gates = list(circuit)
+    max_iters = len(remaining_gates)
+    iters = 0
     while remaining_gates:
-        for _ in range(len(remaining_gates)):
+        iters += 1
+        if iters > max_iters:
+            return err
+        for _ in range(len(remaining_gates)): # pop from front and push to back (changing the order)
             gate = remaining_gates.pop(0)
             a, b = list(gate.inputs)
             if a in wire_values and b in wire_values:
@@ -58,16 +63,52 @@ def get_number_from_input(wires: WireList, wire_group: str) -> int:
 
 # Find gates that might be faulty
 def get_maybe_faulty_gates(circuit: Circuit):
-    pass
+    return circuit[:8]
 
 
 def swap_gates(circuit: Circuit, a: Gate, b: Gate) -> Circuit:
-    pass
-
+    new_gates = []
+    for gate in circuit:
+        if gate == a or gate == b:
+            continue
+        new_gates.append(gate)
+    new_gates.append(Gate(a.inputs, a.op, b.out))
+    new_gates.append(Gate(b.inputs, b.op, a.out))
+    return tuple(new_gates)
 
 
 def get_all_pairings(items):
-    pass
+    if len(items) == 1 or len(items) == 0:
+        return []
+    first, *rest = items
+    pairings = []
+    for i, other in enumerate(rest):
+        pair = (first, other)
+        rec = rest[:]
+        rec.pop(i)
+        options = get_all_pairings(rec)
+        for option in options:
+            pairings.append([pair] + option)
+        if not options:
+            pairings.append([pair])
+    return pairings
+
+
+def get_all_four_pairings(items):
+    if len(items) < 8:
+        raise Exception('Not enough items')
+    if len(items) == 8:
+        return get_all_pairings(items)
+    if len(set(items)) != len(items):
+        raise Exception('Duplicate items')
+
+    # get all ways to hold out extra items
+    ways_to_hold_out_n = combinations(items, len(items) - 8)
+    all_pairings = []
+    for items_to_withhold in ways_to_hold_out_n:
+        rem_items = [item for item in items if item not in items_to_withhold]
+        all_pairings += get_all_pairings(rem_items)
+    return all_pairings
 
 
 def fix_machine(initial_wires: WireList, initial_circuit: Circuit):
@@ -77,17 +118,18 @@ def fix_machine(initial_wires: WireList, initial_circuit: Circuit):
     correct_ans = x + y
 
     faulty_gates = get_maybe_faulty_gates(initial_circuit)
-    all_pairings = get_all_pairings(faulty_gates)
+    all_pairings = get_all_pairings(faulty_gates[:])
     for pairings in all_pairings:
-        maybe_fixed_circuit = None
+        maybe_fixed_circuit = initial_circuit
         for pair in pairings:
             a, b = pair
-            maybe_fixed_circuit = swap_gates(initial_circuit, a, b)
+            maybe_fixed_circuit = swap_gates(maybe_fixed_circuit, a, b)
         ans = run_machine(initial_wires, maybe_fixed_circuit)
         if ans == correct_ans:
             return [p for pair in pairings for p in pair]
 
     assert False, "Didn't find nuffin, ¯\\_(ツ)_/¯"
+
 
 def part2(input):
     wire_value_list, circuit = parse(input)
