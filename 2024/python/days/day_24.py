@@ -1,5 +1,6 @@
 from collections import namedtuple
 from itertools import combinations
+import typing
 from pathlib import Path
 
 from utils.misc import timer
@@ -106,44 +107,65 @@ def get_number_from_input(wire_value_list, n):
     binary_string = ''.join([str(val) for name, val in name_val_pairs])
     return int(binary_string, 2)
 
-                          # in op in`  -> out
+
+
+ # in op in`  -> out
 type RawGate = tuple[tuple[str, str, str], str]
 type RawCircuit = tuple[RawGate]
 
-Z_Output = namedtuple('Z_Output', ['name', 'number'])
-Input = namedtuple('Input', ['name'])
-Output = namedtuple('Output', ['name'])
-Carry = namedtuple('Carry', ['name', 'to'])
+# Input = namedtuple('Input', ['name'])
+# Output = namedtuple('Output', ['name'])
+# Carry = namedtuple('Carry', ['name', 'to'])
+type Circuit = tuple[Gate]
 Gate = namedtuple('Gate', ['inputs', 'op', 'out'])
 Result = namedtuple('Result', ['swapped_gates', 'carry', 'fixed_circuit'])
 
-def get_only_gate(circuit: RawCircuit, inputs: set[Input], op: str) -> Gate:
+
+def get_only_gate(circuit: Circuit, inputs: set[str]=None, output_name: str=None, op: str=None) -> Gate:
     # Get matching gate. Raise if no gate or multiple gates
     pass
 
 
-def maybe_get_only_gate(circuit: RawCircuit, inputs: set[Input], op: str) -> Gate:
+def maybe_get_only_gate(circuit: Circuit, inputs: set[str], op: str=None, output_name: str=None) -> Gate:
     # Get single matching gate or None, Raise if multiple gates
     pass
 
+def swap_gate_outputs(circuit: Circuit, a: Gate, b: Gate) -> Circuit:
+    # "Update" the circuit so the gates have swapped outputs
+    pass
 
-def trace_full_adder(initial_circuit: RawCircuit, x_in: Input, y_in: Input, carry: Carry) -> Result:
+
+def trace_full_adder(initial_circuit: Circuit, x_in: str, y_in: str, carry: str) -> Result:
     circuit = initial_circuit
     swapped_gates = []
 
-
     ## First and second XOR
     xor_1 = get_only_gate(circuit, inputs={x_in, y_in}, op='XOR')
-    xor_2 = maybe_get_only_gate(circuit, inputs={xor_1.out, carry.name}, op='XOR')
+    xor_2 = maybe_get_only_gate(circuit, inputs={xor_1.out, carry}, op='XOR')
     # if xor_2 is None -> xor_1 has the wrong output. Find output that goes into xor with carry and swap
-    # if xor_2.out is not Z[input_n], xor_2 has wrong output, find gate that outputs to z[input_n] and swap
+    if xor_2 is None:
+        actual_xor_2 = get_only_gate(circuit, inputs={carry}, op='XOR')
+        wrong_inputs = [input for input in actual_xor_2.inputs if input != carry]
+        assert len(wrong_inputs) == 1, 'Expected to find 1 wrong input to carry in fix xor1 out'
+        gate_to_swap = get_only_gate(circuit, output_name=wrong_inputs[0])
+        circuit = swap_gate_outputs(circuit, gate_to_swap, xor_1)
+        swapped_gates.append([gate_to_swap.out, xor_1.out])
+        xor_1 = get_only_gate(circuit, inputs={x_in, y_in}, op='XOR')  # Get updated value
 
-    # Update fixed values
+    # if xor_2.out is not Z[input_n], xor_2 has wrong output, find gate that outputs to z[input_n] and swap
+    z_out = x_in.replace('x', 'z')
+    if xor_2.out != z_out:
+        gate_to_swap = get_only_gate(circuit, output_name=z_out)
+        circuit = swap_gate_outputs(circuit, gate_to_swap, xor_2)
+        swapped_gates.append([gate_to_swap.out, xor_2.out])
+        xor_2 = get_only_gate(circuit, output_name=z_out, op='XOR')  # Get updated value
+
+    # Update fixed values (again, just in case)
     xor_1 = get_only_gate(circuit, inputs={x_in, y_in}, op='XOR')
-    xor_2 = get_only_gate(circuit, inputs={xor_1.out, carry.name}, op='XOR')
+    xor_2 = get_only_gate(circuit, inputs={xor_1.out, carry}, op='XOR')
 
     ## First and second AND
-    and_1 = get_only_gate(circuit, inputs={xor_1.out, carry.name}, op='AND')
+    and_1 = get_only_gate(circuit, inputs={xor_1.out, carry}, op='AND')
     and_2 = get_only_gate(circuit, inputs={x_in, y_in}, op='AND')
     final_or = maybe_get_only_gate(circuit, inputs={and_1.out, and_2.out}, op='OR')
     # if not final_or and_1 or and_2, or both, have the wrong output, they should input to an OR (tricky?)
@@ -155,7 +177,6 @@ def trace_full_adder(initial_circuit: RawCircuit, x_in: Input, y_in: Input, carr
     return Result(swapped_gates, out_carry, circuit)
 
 
-
 def find_swapped_gates(wire_value_list, initial_circuit):
     x_wires = [name for name, _ in get_name_val_pairs(wire_value_list, 'x')]
     y_wires = [name for name, _ in get_name_val_pairs(wire_value_list, 'y')]
@@ -165,10 +186,10 @@ def find_swapped_gates(wire_value_list, initial_circuit):
 
     all_swapped_gates = []
     latest_circuit = initial_circuit
-    latest_carry = Carry('gct', 1) # Manual analysis
+    latest_carry = 'gct'  # Manual analysis
     for x_in, y_in in xy_pairs[1:]:
-        result = trace_full_adder(latest_circuit, Input(x_in), Input(y_in), latest_carry)
-        for a,b in result.swapped_gates:
+        result = trace_full_adder(latest_circuit, x_in, y_in, latest_carry)
+        for a, b in result.swapped_gates:
             all_swapped_gates += [a, b]
         latest_carry = result.carry
         latest_circuit = result.fixed_circuit
