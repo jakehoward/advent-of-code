@@ -21,6 +21,18 @@ def parse(input):
     return tuple(wires), tuple(circuit)
 
 
+def x_in(n):
+    return f'x{str(n).rjust(2, '0')}'
+
+
+def y_in(n):
+    return f'y{str(n).rjust(2, '0')}'
+
+
+def z_out(n):
+    return f'z{str(n).rjust(2, '0')}'
+
+
 def run_machine(input_wire_values: tuple[Wire, ...], circuit: Circuit, err=-1) -> int:
     wire_values = {name: value for name, value in input_wire_values}
     remaining_gates = list(circuit)
@@ -30,7 +42,7 @@ def run_machine(input_wire_values: tuple[Wire, ...], circuit: Circuit, err=-1) -
         iters += 1
         if iters > max_iters:
             return err
-        for _ in range(len(remaining_gates)): # pop from front and push to back (changing the order)
+        for _ in range(len(remaining_gates)):  # pop from front and push to back (changing the order)
             gate = remaining_gates.pop(0)
             a, b = list(gate.inputs)
             if a in wire_values and b in wire_values:
@@ -61,9 +73,80 @@ def get_number_from_input(wires: WireList, wire_group: str) -> int:
     return int(binary_string, 2)
 
 
-# Find gates that might be faulty
-def get_maybe_faulty_gates(circuit: Circuit):
-    return circuit[:8]
+def get_gate_or_vomit(circuit: Circuit, inputs: set[str] = None, op=None, out=None) -> Gate:
+    pass
+
+
+def maybe_get_gate(circuit: Circuit, inputs=None, op=None, out=None) -> Gate:
+    # Raise if multiple found
+    pass
+
+
+def t(x):
+    return x is not None
+
+
+def get_maybe_faulty_gates(circuit: Circuit, input_num=1, carry_gate: Gate = Gate({'x00', 'y00'}, 'AND', 'gct')):
+    # https://en.wikipedia.org/wiki/Adder_(electronics)#/media/File:Fulladder.gif
+    # Initial carry known from analysis that this is the first carry and the half adder before this is valid
+    # last_carry = 'z45'
+    if input_num == 45:
+        # assert carry_gate.out == 'z45' # Probably can't rely on this as this last OR might end up swapped...
+        return []
+
+    maybe_faulty = set()
+    inputs = {x_in(input_num), y_in(input_num)}
+    # Inputs are never wrong, only outputs, so this will always find an XOR and an AND
+    xor_1 = get_gate_or_vomit(circuit, inputs=inputs, op='XOR')
+    and_2 = get_gate_or_vomit(circuit, inputs=inputs, op='AND')
+
+    # Analyse xor2
+    xor_2_by_carry = maybe_get_gate(circuit, inputs={carry_gate.out}, op='XOR')
+    xor_2_by_xor_1 = maybe_get_gate(circuit, inputs={xor_1.out}, op='XOR')
+    xor_2_both_truthy = t(xor_2_by_carry) and t(xor_2_by_xor_1)
+    xor_2_equal = xor_2_by_carry == xor_2_by_xor_1
+    xor_2_ok = False
+    xor_2 = None
+    if xor_2_both_truthy and xor_2_equal and xor_2_by_xor_1.out == z_out(input_num):
+        xor_2_ok = True
+        xor_2 = xor_2_by_xor_1
+    else:
+        maybe_faulty.add(carry_gate)
+        maybe_faulty.add(xor_1)
+
+    ## Analyse ANDs
+    and_1_by_xor_1 = maybe_get_gate(circuit, inputs={xor_1.out}, op='AND')
+    and_1_by_carry = maybe_get_gate(circuit, inputs={carry_gate.out}, op='AND')
+    and_1_both_truthy = t(and_1_by_carry) and t(and_1_by_xor_1)
+    and_1_equal = and_1_by_carry == and_1_by_xor_1
+    and_1_ok = False
+    and_1 = None
+    if and_1_both_truthy and and_1_equal:
+        and_1_ok = True
+        and_1 = and_1_by_xor_1
+
+    next_carry_by_and_1 = maybe_get_gate(circuit, inputs={and_1.out}, op='OR')
+    next_carry_by_and_2 = maybe_get_gate(circuit, inputs={and_2.out}, op='OR')
+    next_carry_both_truthy = t(next_carry_by_and_1) and t(next_carry_by_and_2)
+    next_carry_equal = next_carry_by_and_1 == next_carry_by_and_2
+    next_carry_ok = False
+    next_carry = None
+    if next_carry_both_truthy and next_carry_equal:
+        next_carry_ok = True
+        next_carry = next_carry_by_and_2
+    else:
+        and_1_ok = False
+        maybe_faulty.add(carry_gate)
+        maybe_faulty.add(xor_1)
+
+    if t(next_carry):
+        maybe_faulty |= get_maybe_faulty_gates(circuit, input_num + 1, next_carry)
+    else:
+        if not t(next_carry_by_and_1) and not t(next_carry_by_and_2):
+            raise Exception('Cannot find a carry...')
+        maybe_faulty |= get_maybe_faulty_gates(circuit, input_num + 1, next_carry_by_and_2)
+        maybe_faulty |= get_maybe_faulty_gates(circuit, input_num + 1, next_carry_by_and_1)
+    return maybe_faulty
 
 
 def swap_gates(circuit: Circuit, a: Gate, b: Gate) -> Circuit:
@@ -117,7 +200,7 @@ def fix_machine(initial_wires: WireList, initial_circuit: Circuit):
     y = get_number_from_input(initial_wires, 'y')
     correct_ans = x + y
 
-    faulty_gates = get_maybe_faulty_gates(initial_circuit)
+    faulty_gates = list(get_maybe_faulty_gates(initial_circuit))
     all_pairings = get_all_pairings(faulty_gates[:])
     for pairings in all_pairings:
         maybe_fixed_circuit = initial_circuit
