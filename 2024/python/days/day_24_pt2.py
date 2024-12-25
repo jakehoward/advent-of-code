@@ -74,12 +74,25 @@ def get_number_from_input(wires: WireList, wire_group: str) -> int:
 
 
 def get_gate_or_vomit(circuit: Circuit, inputs: set[str] = None, op=None, out=None) -> Gate:
-    pass
+    gate = maybe_get_gate(circuit, inputs=inputs, op=op, out=out)
+    if not gate:
+        raise Exception('No matching gates - (╯°□°)╯︵ ┻━┻')
+    return gate
 
 
 def maybe_get_gate(circuit: Circuit, inputs=None, op=None, out=None) -> Gate:
-    # Raise if multiple found
-    pass
+    matching_gates = []
+    for gate in circuit:
+        inputs_match = True if not inputs else bool(gate.inputs.intersection(inputs))
+        op_match = True if not op else gate.op == op
+        out_match = True if not out else gate.out == out
+        if inputs_match and op_match and out_match:
+            matching_gates.append(gate)
+    if not matching_gates:
+        return None
+    if len(matching_gates) > 1:
+        raise Exception(f'{len(matching_gates)} matching gates, only one acceptable - (╯°□°)╯︵ ┻━┻')
+    return matching_gates[0]
 
 
 def t(x):

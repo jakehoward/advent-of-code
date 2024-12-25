@@ -11,6 +11,11 @@ class TestGrid:
     def test_make_grid(self):
         assert (make_grid('12\n34')._data == ['1', '2', '3', '4'])
 
+    def test_get_cols(self):
+        g = make_grid('123\n456\n789', True)
+        cols = g.get_cols()
+        assert(cols == [[1,4,7], [2,5,8], [3,6,9]])
+
     def test_make_grid_points(self):
         width = 3
         height = 4

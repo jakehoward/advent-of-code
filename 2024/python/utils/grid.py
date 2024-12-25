@@ -17,6 +17,15 @@ class Grid:
             for x in range(self._x_size):
                 yield ((x, y), self.at_xy(x, y))
 
+    def get_cols(self):
+        cols = []
+        for x in range(self._x_size):
+            col = []
+            for y in range(self._y_size):
+                col.append(self.at((x, y)))
+            cols.append(col)
+        return cols
+
     def get_nbr_xys(self, x, y, include_diagonals=False):
         deltas = ((0, -1), (0, 1), (-1, 0), (1, 0))
         if include_diagonals:
