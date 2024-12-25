@@ -106,61 +106,7 @@ def get_maybe_faulty_gates(circuit: Circuit, input_num=1, carry_gate: Gate = Gat
     if input_num == 45:
         # assert carry_gate.out == 'z45' # Probably can't rely on this as this last OR might end up swapped...
         return []
-
-    maybe_faulty = set()
-    inputs = {x_in(input_num), y_in(input_num)}
-    # Inputs are never wrong, only outputs, so this will always find an XOR and an AND
-    xor_1 = get_gate_or_vomit(circuit, inputs=inputs, op='XOR')
-    and_2 = get_gate_or_vomit(circuit, inputs=inputs, op='AND')
-
-    # Analyse xor2
-    xor_2_by_carry = maybe_get_gate(circuit, inputs={carry_gate.out}, op='XOR')
-    xor_2_by_xor_1 = maybe_get_gate(circuit, inputs={xor_1.out}, op='XOR')
-    xor_2_both_truthy = t(xor_2_by_carry) and t(xor_2_by_xor_1)
-    xor_2_equal = xor_2_by_carry == xor_2_by_xor_1
-    xor_2_ok = False
-    xor_2 = None
-    if xor_2_both_truthy and xor_2_equal and xor_2_by_xor_1.out == z_out(input_num):
-        xor_2_ok = True
-        xor_2 = xor_2_by_xor_1
-    else:
-        maybe_faulty.add(carry_gate)
-        maybe_faulty.add(xor_1)
-
-    ## Analyse ANDs
-    and_1_by_xor_1 = maybe_get_gate(circuit, inputs={xor_1.out}, op='AND')
-    and_1_by_carry = maybe_get_gate(circuit, inputs={carry_gate.out}, op='AND')
-    and_1_both_truthy = t(and_1_by_carry) and t(and_1_by_xor_1)
-    and_1_equal = and_1_by_carry == and_1_by_xor_1
-    and_1_ok = False
-    and_1 = None
-    if and_1_both_truthy and and_1_equal:
-        and_1_ok = True
-        and_1 = and_1_by_xor_1
-
-    next_carry_by_and_1 = maybe_get_gate(circuit, inputs={and_1.out}, op='OR')
-    next_carry_by_and_2 = maybe_get_gate(circuit, inputs={and_2.out}, op='OR')
-    next_carry_both_truthy = t(next_carry_by_and_1) and t(next_carry_by_and_2)
-    next_carry_equal = next_carry_by_and_1 == next_carry_by_and_2
-    next_carry_ok = False
-    next_carry = None
-    if next_carry_both_truthy and next_carry_equal:
-        next_carry_ok = True
-        next_carry = next_carry_by_and_2
-    else:
-        and_1_ok = False
-        maybe_faulty.add(carry_gate)
-        maybe_faulty.add(xor_1)
-
-    if t(next_carry):
-        maybe_faulty |= get_maybe_faulty_gates(circuit, input_num + 1, next_carry)
-    else:
-        if not t(next_carry_by_and_1) and not t(next_carry_by_and_2):
-            raise Exception('Cannot find a carry...')
-        maybe_faulty |= get_maybe_faulty_gates(circuit, input_num + 1, next_carry_by_and_2)
-        maybe_faulty |= get_maybe_faulty_gates(circuit, input_num + 1, next_carry_by_and_1)
-    return maybe_faulty
-
+    return []
 
 def swap_gates(circuit: Circuit, a: Gate, b: Gate) -> Circuit:
     new_gates = []
@@ -227,14 +173,92 @@ def fix_machine(initial_wires: WireList, initial_circuit: Circuit):
     assert False, "Didn't find nuffin, ¯\\_(ツ)_/¯"
 
 
+def easy_swaps(input):
+    wires, circuit = parse(input)
+    swaps = []
+    for gate in circuit:
+        # any z value that isn't coming out of an XOR is wrong except z45
+        if gate.out.startswith('z') and gate.op != 'XOR' and gate.out != 'z45':
+            print('z-swap:', gate)
+            swaps.append(gate)
+        # any AND out that doesn't go into an OR is wrong
+        if gate.op == 'AND':
+            possible_or = maybe_get_gate(circuit, inputs={gate.out}, op='OR')
+            if not possible_or:
+                print('and-swap:', gate)
+                swaps.append(gate)
+        # any OR that doesn't go into an AND and an XOR is wrong
+        if gate.op == 'OR':
+            possible_and = maybe_get_gate(circuit, inputs={gate.out}, op='AND')
+            possible_xor = maybe_get_gate(circuit, inputs={gate.out}, op='XOR')
+            if not possible_and or not possible_xor:
+                print('or-swap:', gate)
+                swaps.append(gate)
+
+        if gate.op == 'XOR':
+            # any XOR that has a x/y input that goes into an OR is wrong
+            if any(True for i in gate.inputs if i.startswith('x')):
+                possible_and = maybe_get_gate(circuit, inputs={gate.out}, op='AND')
+                possible_xor = maybe_get_gate(circuit, inputs={gate.out}, op='XOR')
+                if not possible_and or not possible_xor and gate.out != 'z00':
+                    swaps.append(gate)
+                    print('xor-swap:', gate)
+
+                # any XOR that has a x/y input that doesn't go into an XOR and an AND is wrong
+                possible_or = maybe_get_gate(circuit, inputs={gate.out}, op='OR')
+                if possible_or:
+                    print('xor-swap-2:', gate)
+                    swaps.append(gate)
+
+    # any xor that doesn't take x/y input and doesn't output a z is wrong
+    x_ors_that_do_not_take_xy = [g for g in circuit if (not list(g.inputs)[0].startswith('x') and not list(g.inputs)[0].startswith('y')) and g.op == 'XOR']
+    print('hmm:', x_ors_that_do_not_take_xy)
+    for xor in x_ors_that_do_not_take_xy:
+        if not xor.out.startswith('z'):
+            print('xor-swap-3:', xor)
+            swaps.append(xor)
+
+    seen = set()
+    final_swaps = []
+    for s in swaps:
+        if s.out in seen:
+            continue
+        seen.add(s.out)
+        if s.out in ['gct', 'z45', 'z00']:
+            continue
+        final_swaps.append(s)
+    return final_swaps
+
+
+
 def part2(input):
+    swaps = easy_swaps(input)
+    print(swaps)
     wire_value_list, circuit = parse(input)
     # Ans from part 1
     initial_ans = run_machine(wire_value_list, circuit)
     assert initial_ans == 52728619468518, f'Expected 52728619468518, got {initial_ans}'
 
-    swapped_wires = fix_machine(wire_value_list, circuit)
-    return ','.join(sorted(swapped_wires))
+    assert len(swaps) == 8
+
+    x = get_number_from_input(wire_value_list, 'x')
+    y = get_number_from_input(wire_value_list, 'y')
+    correct_ans = x + y
+
+    initial_circuit = circuit[:]
+    all_pairings = get_all_pairings(swaps)[:]
+    maybe_fixed_circuit = circuit[:]
+    for pairings in all_pairings:
+        maybe_fixed_circuit = initial_circuit
+        for pair in pairings:
+            a, b = pair
+            maybe_fixed_circuit = swap_gates(maybe_fixed_circuit, a, b)
+        ans = run_machine(wire_value_list, maybe_fixed_circuit)
+        if ans == correct_ans:
+            return ','.join(sorted([p.out for pair in pairings for p in pair]))
+    # swapped_wires = fix_machine(wire_value_list, circuit)
+    # return ','.join(sorted(swapped_wires))
+    return '¯\\_(ツ)_/¯'
 
 
 def run():
