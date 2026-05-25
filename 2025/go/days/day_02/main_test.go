@@ -61,7 +61,7 @@ func TestRepeatsTwice(t *testing.T) {
 
 func eq[T comparable](xs []T, ys []T) bool {
 	if len(xs) != len(ys) {
-		return false;
+		return false
 	}
 	for i, x := range xs {
 		if x != ys[i] {
@@ -69,7 +69,7 @@ func eq[T comparable](xs []T, ys []T) bool {
 		}
 	}
 
-	return true;
+	return true
 }
 
 func TestChunks(t *testing.T) {

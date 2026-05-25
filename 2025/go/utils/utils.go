@@ -8,8 +8,8 @@ import (
 )
 
 func PrintDuration(label string, start time.Time) {
-	now := time.Now().UnixMicro()
-	fmt.Println(label, "took:", now-start.UnixMicro(), "µs")
+	now := time.Now()
+	fmt.Println(label, "took:", now.UnixMilli()-start.UnixMilli(), "ms", "(", now.UnixMicro()-start.UnixMicro(), "µs )")
 }
 
 func IntAbs(x int) int {
