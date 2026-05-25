@@ -6,6 +6,12 @@
 go run ./days/day_01/main.go
 ```
 
+## Format
+
+```
+go fmt ./...
+```
+
 ## Test
 
 Test a single day:

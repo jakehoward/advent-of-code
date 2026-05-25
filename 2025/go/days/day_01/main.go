@@ -20,7 +20,6 @@ L99
 R14
 L82`
 
-
 type Line struct {
 	Direction string
 	Distance  int
@@ -34,7 +33,6 @@ func parseLine(input string) Line {
 	}
 	return Line{direction, distance}
 }
-
 
 func ans(input string) int {
 	num := 50
