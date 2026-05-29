@@ -31,3 +31,16 @@ func PuzzleInput(filename string) string {
 
 	return string(content)
 }
+
+func EqSlice[T comparable](xs []T, ys []T) bool {
+	if len(xs) != len(ys) {
+		return false
+	}
+	for i, x := range xs {
+		if x != ys[i] {
+			return false
+		}
+	}
+
+	return true
+}
