@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -79,4 +81,22 @@ func EqSlice[T comparable](xs []T, ys []T) bool {
 	}
 
 	return true
+}
+
+type Range struct {
+	Start   uint64
+	EndIncl uint64
+}
+
+func NewRange(rangeStr string) Range {
+	parts := strings.Split(rangeStr, "-")
+	start, err := strconv.ParseUint(parts[0], 10, 64)
+	if err != nil {
+		log.Fatal(err)
+	}
+	endIncl, err := strconv.ParseUint(parts[1], 10, 64)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return Range{start, endIncl}
 }
