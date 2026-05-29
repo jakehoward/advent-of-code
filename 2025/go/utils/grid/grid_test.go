@@ -1,9 +1,9 @@
 package grid
 
 import (
-	"adventofcode/utils"
 	"errors"
 	"fmt"
+	"reflect"
 	"strconv"
 	"testing"
 )
@@ -29,7 +29,7 @@ func TestNewGrid(t *testing.T) {
 			if err != nil {
 				t.Errorf("unexpected error: %v", err)
 			}
-			if !utils.EqSlice(result.Data, tc.expected.Data) || result.NumCols != tc.expected.NumCols || result.NumRows != tc.expected.NumRows {
+			if !reflect.DeepEqual(*result, tc.expected) {
 				t.Errorf("input: %v, got %v; want %v", tc.input, result, tc.expected)
 			}
 		})
@@ -53,7 +53,7 @@ func TestNewGridJaggedError(t *testing.T) {
 	}
 }
 
-func TestMakeStringGrid(t *testing.T) {
+func TestNewStringGrid(t *testing.T) {
 	testCases := []struct {
 		name     string
 		input    string
@@ -71,14 +71,14 @@ func TestMakeStringGrid(t *testing.T) {
 			if err != nil {
 				t.Errorf("unexpected error: %v", err)
 			}
-			if !utils.EqSlice(result.Data, tc.expected.Data) || result.NumCols != tc.expected.NumCols || result.NumRows != tc.expected.NumRows {
+			if !reflect.DeepEqual(*result, tc.expected) {
 				t.Errorf("input: %v, got %v; want %v", tc.input, result, tc.expected)
 			}
 		})
 	}
 }
 
-func TestMakeIntGrid(t *testing.T) {
+func TestNewIntGrid(t *testing.T) {
 	testCases := []struct {
 		name     string
 		input    string
@@ -95,9 +95,63 @@ func TestMakeIntGrid(t *testing.T) {
 			if err != nil {
 				t.Errorf("unexpected error: %v", err)
 			}
-			if !utils.EqSlice(result.Data, tc.expected.Data) || result.NumCols != tc.expected.NumCols || result.NumRows != tc.expected.NumRows {
+			if !reflect.DeepEqual(*result, tc.expected) {
 				t.Errorf("input: %v, got %v; want %v", tc.input, result, tc.expected)
 			}
+		})
+	}
+}
+
+func newIntGrid(s string) *Grid[int] {
+	g, err := NewIntGrid(s)
+	if err != nil {
+		panic("unexpected error")
+	}
+	return g
+}
+
+func TestCols(t *testing.T) {
+	testCases := []struct {
+		name     string
+		grid     *Grid[int]
+		expected [][]int
+	}{
+		{"empty", newIntGrid(""), [][]int{}},
+		{"single row", newIntGrid("123"), [][]int{{1}, {2}, {3}}},
+		{"matrix", newIntGrid("123\n456"), [][]int{{1, 4}, {2, 5}, {3, 6}}},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := tc.grid.Cols()
+
+			if !reflect.DeepEqual(result, tc.expected) {
+				t.Errorf("input: %v, got %v; want %v", tc.grid, result, tc.expected)
+			}
+
+		})
+	}
+}
+
+func TestRows(t *testing.T) {
+	testCases := []struct {
+		name     string
+		grid     *Grid[int]
+		expected [][]int
+	}{
+		{"empty", newIntGrid(""), [][]int{}},
+		{"single row", newIntGrid("123"), [][]int{{1, 2, 3}}},
+		{"matrix", newIntGrid("123\n456"), [][]int{{1, 2, 3}, {4, 5, 6}}},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := tc.grid.Rows()
+
+			if !reflect.DeepEqual(result, tc.expected) {
+				t.Errorf("input: %v, got %v; want %v", tc.grid, result, tc.expected)
+			}
+
 		})
 	}
 }

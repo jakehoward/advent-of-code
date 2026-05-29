@@ -15,6 +15,30 @@ type Grid[T any] struct {
 	NumRows, NumCols int
 }
 
+func (g *Grid[T]) Cols() [][]T {
+	cols := make([][]T, g.NumCols)
+	for col, _ := range cols {
+		colSlice := make([]T, g.NumRows)
+		cols[col] = colSlice
+		for row := 0; row < g.NumRows; row++ {
+			colSlice[row] = g.Data[row*g.NumCols+col]
+		}
+	}
+	return cols
+}
+
+func (g *Grid[T]) Rows() [][]T {
+	rows := make([][]T, g.NumRows)
+	for row, _ := range rows {
+		rowSlice := make([]T, g.NumCols)
+		rows[row] = rowSlice
+		for col := 0; col < g.NumCols; col++ {
+			rowSlice[col] = g.Data[row*g.NumCols+col]
+		}
+	}
+	return rows
+}
+
 func NewStringGrid(s string) (*Grid[string], error) {
 	return New(s, func(s string) (string, error) { return s, nil })
 }
