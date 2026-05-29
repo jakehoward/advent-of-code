@@ -17,24 +17,23 @@ type Grid[T any] struct {
 
 func (g *Grid[T]) Cols() [][]T {
 	cols := make([][]T, g.NumCols)
-	for col, _ := range cols {
+	for col := range cols {
 		colSlice := make([]T, g.NumRows)
-		cols[col] = colSlice
-		for row := 0; row < g.NumRows; row++ {
+		for row := range colSlice {
 			colSlice[row] = g.Data[row*g.NumCols+col]
 		}
+		cols[col] = colSlice
 	}
 	return cols
 }
 
 func (g *Grid[T]) Rows() [][]T {
 	rows := make([][]T, g.NumRows)
-	for row, _ := range rows {
-		rowSlice := make([]T, g.NumCols)
-		rows[row] = rowSlice
-		for col := 0; col < g.NumCols; col++ {
-			rowSlice[col] = g.Data[row*g.NumCols+col]
-		}
+	for row := range rows {
+		start := row * g.NumCols
+		end := (row + 1) * g.NumCols
+		capacity := end
+		rows[row] = g.Data[start:end:capacity]
 	}
 	return rows
 }
