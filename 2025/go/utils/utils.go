@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -21,6 +22,31 @@ func IntAbs(x int) int {
 
 func Mod(a, b int) int {
 	return (a%b + b) % b
+}
+
+var EmptySliceError = errors.New("cannot get MaxIndex of empty slice")
+
+func MaxIndex(xs []int) (int, error) {
+	if len(xs) == 0 {
+		return -1, EmptySliceError
+	}
+	maxVal := xs[0]
+	maxIndex := 0
+	for i, x := range xs {
+		if x > maxVal {
+			maxIndex = i
+			maxVal = x
+		}
+	}
+	return maxIndex, nil
+}
+
+func Sum(xs []int) int {
+	sum := 0
+	for _, x := range xs {
+		sum += x
+	}
+	return sum
 }
 
 func PuzzleInput(filename string) string {
