@@ -73,12 +73,51 @@ func (g *Grid[T]) Adjacent(point Point) *Grid[T] {
 	return &Grid[T]{adj, len(adj) / hitCols, hitCols}
 }
 
-func (g *Grid[T]) Get(point Point) (T, error) {
+func (g *Grid[T]) PointToIndex(point Point) (int, error) {
 	if point.X >= 0 && point.X < g.NumCols && point.Y >= 0 && point.Y < g.NumRows {
-		return g.Data[point.Y*g.NumCols+point.X], nil
+		return g.NumCols*point.Y + point.X, nil
 	}
+	return -1, PointOutOfRangeErr
+}
 
-	return *new(T), PointOutOfRangeErr
+func (g *Grid[T]) Get(point Point) (T, error) {
+	index, err := g.PointToIndex(point)
+	if err != nil {
+		return *new(T), PointOutOfRangeErr
+	}
+	return g.Data[index], nil
+}
+
+func (g *Grid[T]) SetPoints(points []Point, value T) (*Grid[T], error) {
+	for _, point := range points {
+		_, err := g.Set(point, value)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return g, nil
+}
+
+func (g *Grid[T]) Set(point Point, value T) (*Grid[T], error) {
+	index, err := g.PointToIndex(point)
+	if err != nil {
+		return nil, PointOutOfRangeErr
+	}
+	g.Data[index] = value
+	return g, nil
+}
+
+func (g *Grid[T]) Stringify() string {
+	rows := make([]string, g.NumRows)
+	for row := 0; row < g.NumRows; row++ {
+		rowSlice := make([]string, g.NumCols)
+		for col := 0; col < g.NumCols; col++ {
+			idx, _ := g.PointToIndex(Point{col, row})
+			rowSlice[col] = fmt.Sprintf("%v", g.Data[idx])
+		}
+		rows[row] = strings.Join(rowSlice, "")
+	}
+	return strings.Join(rows, "\n")
 }
 
 func (g *Grid[T]) Points() []Point {

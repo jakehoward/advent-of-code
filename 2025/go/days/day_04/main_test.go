@@ -12,7 +12,7 @@ func TestSolve(t *testing.T) {
 
 func TestSolve2(t *testing.T) {
 	ans := solve2(example)
-	expected := ""
+	expected := "43"
 	if ans != expected {
 		t.Errorf(`Got wrong answer for example input, got %v, want %v`, ans, expected)
 	}
