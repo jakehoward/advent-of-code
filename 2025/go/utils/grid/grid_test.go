@@ -155,3 +155,97 @@ func TestRows(t *testing.T) {
 		})
 	}
 }
+
+func TestSurrounding(t *testing.T) {
+	smallGrid := newIntGrid("12\n34")
+	medGrid := newIntGrid("123\n456\n789")
+	largeGrid := newIntGrid("99999\n12345\n00000\n12345\n99999")
+	testCases := []struct {
+		name     string
+		grid     *Grid[int]
+		point    Point
+		expected *Grid[int]
+	}{
+		{"small", smallGrid, Point{0, 0}, newIntGrid("12\n34")},
+		{"small2", smallGrid, Point{0, 1}, newIntGrid("12\n34")},
+		{"small3", smallGrid, Point{1, 0}, newIntGrid("12\n34")},
+		{"small4", smallGrid, Point{1, 1}, newIntGrid("12\n34")},
+		{"med1", medGrid, Point{1, 1}, newIntGrid("123\n456\n789")},
+		{"med2", medGrid, Point{0, 0}, newIntGrid("12\n45")},
+		{"med3", medGrid, Point{1, 1}, newIntGrid("123\n456\n789")},
+		{"med4", medGrid, Point{2, 2}, newIntGrid("56\n89")},
+		{"large", largeGrid, Point{2, 2}, newIntGrid("234\n000\n234")},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := tc.grid.Adjacent(tc.point)
+
+			if !reflect.DeepEqual(result, tc.expected) {
+				t.Errorf("input: %v, %v, got %v; want %v", tc.grid, tc.point, result, tc.expected)
+			}
+
+		})
+	}
+}
+
+func TestGet(t *testing.T) {
+	smallGrid := newIntGrid("12\n34")
+	testCases := []struct {
+		name     string
+		grid     *Grid[int]
+		point    Point
+		err      error
+		expected int
+	}{
+		{"A", smallGrid, Point{0, 0}, nil, 1},
+		{"B", smallGrid, Point{1, 0}, nil, 2},
+		{"C", smallGrid, Point{0, 1}, nil, 3},
+		{"D", smallGrid, Point{1, 1}, nil, 4},
+
+		{"E1", smallGrid, Point{-1, 0}, PointOutOfRangeErr, 0},
+		{"E2", smallGrid, Point{0, -1}, PointOutOfRangeErr, 0},
+		{"E3", smallGrid, Point{-1, -1}, PointOutOfRangeErr, 0},
+		{"E4", smallGrid, Point{2, 0}, PointOutOfRangeErr, 0},
+		{"E5", smallGrid, Point{0, 2}, PointOutOfRangeErr, 0},
+		{"E6", smallGrid, Point{2, 2}, PointOutOfRangeErr, 0},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := tc.grid.Get(tc.point)
+			if !errors.Is(err, tc.err) {
+				t.Errorf("err: %v; want %v", err, tc.err)
+			}
+			if !reflect.DeepEqual(result, tc.expected) {
+				t.Errorf("input: %v, %v, got %v; want %v", tc.grid, tc.point, result, tc.expected)
+			}
+
+		})
+	}
+}
+
+func TestPoints(t *testing.T) {
+	smallGrid := newIntGrid("12\n34")
+	testCases := []struct {
+		name     string
+		grid     *Grid[int]
+		expected []Point
+	}{
+		{"small", smallGrid, []Point{{0, 0}, {1, 0}, {0, 1}, {1, 1}}},
+		{"row only", newIntGrid("12"), []Point{{0, 0}, {1, 0}}},
+		{"col only", newIntGrid("1\n2"), []Point{{0, 0}, {0, 1}}},
+		{"empty", newIntGrid(""), []Point{}},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := tc.grid.Points()
+
+			if !reflect.DeepEqual(result, tc.expected) {
+				t.Errorf("input: %v, got %v; want %v", tc.grid, result, tc.expected)
+			}
+
+		})
+	}
+}
