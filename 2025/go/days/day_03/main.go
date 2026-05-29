@@ -23,7 +23,7 @@ func getJoltage(xs []int, numBatts uint64, ans uint64) uint64 {
 		log.Fatal(err)
 	}
 	num := xs[maxIndex]
-	//fmt.Println("num batts:", (numBatts-1)*10*uint64(num), "Num:", num, "ans:", ans, "=>", ans+((numBatts-1)*10*uint64(num)))
+
 	return getJoltage(xs[maxIndex+1:], numBatts-1, ans*10+uint64(num))
 }
 
@@ -37,7 +37,7 @@ func solve(input string, numBatts uint64) string {
 		ans := getJoltage(row, numBatts, 0)
 		answers = append(answers, ans)
 	}
-	//fmt.Println("Answers:", answers)
+
 	return fmt.Sprint(utils.Sum(answers))
 }
 
