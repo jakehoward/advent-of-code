@@ -13,39 +13,50 @@ const example = `987654321111111
 234234234234278
 818181911112111`
 
-func solve(input string) string {
+func getJoltage(xs []int, numBatts uint64, ans uint64) uint64 {
+	if numBatts == 0 {
+		return ans
+	}
+
+	maxIndex, err := utils.MaxIndex(xs[:len(xs)-int(numBatts-1)])
+	if err != nil {
+		log.Fatal(err)
+	}
+	num := xs[maxIndex]
+	//fmt.Println("num batts:", (numBatts-1)*10*uint64(num), "Num:", num, "ans:", ans, "=>", ans+((numBatts-1)*10*uint64(num)))
+	return getJoltage(xs[maxIndex+1:], numBatts-1, ans*10+uint64(num))
+}
+
+func solve(input string, numBatts uint64) string {
 	g, err := grid.NewIntGrid(input)
 	if err != nil {
 		log.Fatal(err)
 	}
-	answers := []int{}
+	answers := []uint64{}
 	for _, row := range g.Rows() {
-		butLast := row[:len(row)-1]
-
-		maxIndexFirst, err := utils.MaxIndex(butLast)
-		if err != nil {
-			log.Fatal(err)
-		}
-		maxIndexSecond, err := utils.MaxIndex(row[maxIndexFirst+1:])
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		ans := row[maxIndexFirst]*10 + row[maxIndexSecond+maxIndexFirst+1]
+		ans := getJoltage(row, numBatts, 0)
 		answers = append(answers, ans)
 	}
+	//fmt.Println("Answers:", answers)
 	return fmt.Sprint(utils.Sum(answers))
 }
 
+func solve1(input string) string {
+	return solve(input, 2)
+}
+
 func solve2(input string) string {
-	return ""
+	return solve(input, 12)
 }
 
 func main() {
 	defer utils.PrintDuration("Day 3", time.Now())
-	exampleAns := solve(example)
-	fmt.Println("solve(example):", exampleAns)
 
-	ans := solve(utils.PuzzleInput("03.txt"))
-	fmt.Println("solve(input):", ans)
+	exampleAns := solve1(example)
+	ans := solve1(utils.PuzzleInput("03.txt"))
+	fmt.Println("example:", exampleAns, "input:", ans)
+
+	exampleAns = solve2(example)
+	ans = solve2(utils.PuzzleInput("03.txt"))
+	fmt.Println("example:", exampleAns, "input:", ans)
 }
