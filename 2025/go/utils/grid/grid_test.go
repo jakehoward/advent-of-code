@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"regexp"
 	"strconv"
 	"testing"
 )
@@ -71,6 +72,37 @@ func TestNewStringGrid(t *testing.T) {
 			if err != nil {
 				t.Errorf("unexpected error: %v", err)
 			}
+			if !reflect.DeepEqual(*result, tc.expected) {
+				t.Errorf("input: %v, got %v; want %v", tc.input, result, tc.expected)
+			}
+		})
+	}
+}
+
+func TestNewSeparatedStringGrid(t *testing.T) {
+	testCases := []struct {
+		name     string
+		input    string
+		expected Grid[string]
+	}{
+		{"empty", "", Grid[string]{[]string{}, 0, 0}},
+		{"single row", "a b   c", Grid[string]{[]string{"a", "b", "c"}, 1, 3}},
+		{"matrix", "a bb c\nd  e f", Grid[string]{[]string{"a", "bb", "c", "d", "e", "f"}, 2, 3}},
+		{"utf-8", "推 己 及  人\n方 能 交 友", Grid[string]{[]string{"推", "己", "及", "人", "方", "能", "交", "友"}, 2, 4}},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			regex, err := regexp.Compile("\\s+")
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+
+			result, err := NewSeparatedStringGrid(tc.input, regex)
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+
 			if !reflect.DeepEqual(*result, tc.expected) {
 				t.Errorf("input: %v, got %v; want %v", tc.input, result, tc.expected)
 			}

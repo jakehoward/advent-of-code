@@ -3,6 +3,7 @@ package grid
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -130,6 +131,25 @@ func (g *Grid[T]) Points() []Point {
 		}
 	}
 	return points
+}
+
+func NewSeparatedStringGrid(s string, r *regexp.Regexp) (*Grid[string], error) {
+	if s == "" {
+		return &Grid[string]{Data: []string{}, NumRows: 0, NumCols: 0}, nil
+	}
+
+	lines := strings.Split(strings.Trim(s, "\n"), "\n")
+	allSubstringsFlag := -1
+	lineLength := len(r.Split(lines[0], allSubstringsFlag))
+	data := make([]string, lineLength*len(lines))
+
+	for rowIdx, line := range lines {
+		for colIdx, cellValue := range r.Split(line, allSubstringsFlag) {
+			data[rowIdx*lineLength+colIdx] = cellValue
+		}
+	}
+
+	return &Grid[string]{Data: data, NumRows: len(lines), NumCols: lineLength}, nil
 }
 
 func NewStringGrid(s string) (*Grid[string], error) {

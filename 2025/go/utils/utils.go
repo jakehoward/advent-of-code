@@ -59,6 +59,14 @@ func Sum[T Integer](xs []T) T {
 	return sum
 }
 
+func Mult[T Integer](xs []T) T {
+	mult := T(1)
+	for _, x := range xs {
+		mult *= x
+	}
+	return mult
+}
+
 func PuzzleInput(filename string) string {
 	content, err := os.ReadFile("./inputs/" + filename)
 	if err != nil {
