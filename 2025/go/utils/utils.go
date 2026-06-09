@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strconv"
-	"strings"
 	"time"
 )
 
@@ -83,20 +81,22 @@ func EqSlice[T comparable](xs []T, ys []T) bool {
 	return true
 }
 
-type Range struct {
-	Start   uint64
-	EndIncl uint64
+type Range[T Integer] struct {
+	Start   T
+	EndExcl T
 }
 
-func NewRange(rangeStr string) Range {
-	parts := strings.Split(rangeStr, "-")
-	start, err := strconv.ParseUint(parts[0], 10, 64)
-	if err != nil {
-		log.Fatal(err)
+func NewRange[T Integer](a, b T) Range[T] {
+	if a > b {
+		log.Fatalf("error NewRange - a must be <= b (%v, %v)", a, b)
 	}
-	endIncl, err := strconv.ParseUint(parts[1], 10, 64)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return Range{start, endIncl}
+	return Range[T]{a, b}
+}
+
+func EmptyRange[T Integer]() Range[T] {
+	return NewRange(T(0), T(0))
+}
+
+func Overlaps[T Integer](a Range[T], b Range[T]) bool {
+	return !(a.EndExcl <= b.Start || a.Start >= b.EndExcl)
 }

@@ -57,3 +57,31 @@ func TestMaxIndex(t *testing.T) {
 		})
 	}
 }
+
+func TestOverlaps(t *testing.T) {
+	testCases := []struct {
+		name     string
+		a        Range[int]
+		b        Range[int]
+		expected bool
+	}{
+		{"no left", Range[int]{0, 5 + 1}, Range[int]{6, 10 + 1}, false},
+		{"partial left", Range[int]{0, 6 + 1}, Range[int]{6, 10 + 1}, true},
+		{"fully contained", Range[int]{7, 9 + 1}, Range[int]{6, 10 + 1}, true},
+		{"partial right", Range[int]{10, 12 + 1}, Range[int]{6, 10 + 1}, true},
+		{"no right", Range[int]{11, 12 + 1}, Range[int]{6, 10 + 1}, false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := Overlaps(tc.a, tc.b)
+			symmetricResult := Overlaps(tc.b, tc.a)
+			if result != symmetricResult {
+				t.Errorf("err: result %v; symmetric result %v should be the same", result, symmetricResult)
+			}
+			if result != tc.expected {
+				t.Errorf("ex: %v %v got %v; want %v", tc.a, tc.b, result, tc.expected)
+			}
+		})
+	}
+}

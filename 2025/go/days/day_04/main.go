@@ -74,7 +74,7 @@ func solve2(input string) string {
 }
 
 func main() {
-	defer utils.PrintDuration("Day 3", time.Now())
+	defer utils.PrintDuration("Day 4", time.Now())
 	ans := "¯\\_(ツ)_/¯"
 	exampleAns := solve1(example)
 	ans = solve1(utils.PuzzleInput("04.txt"))
